@@ -9,12 +9,21 @@ from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
 from src.infra.settings import get_settings
 from src.infra.excel_writers.openpyxl_invoice_attachment_builder import OpenpyxlInvoiceAttachmentBuilder
 from src.infra.exchange.exchange_email_sender import ExchangeEmailSender
+from src.infra.ax_adapter.employee_email_lookup import AxEmployeeEmailLookup
 
 
 def main() -> None:
     settings = get_settings()
-    if settings.exchange is None:
-        raise ValueError("Укажите exchange__username и exchange__password в окружении или .env")
+    if settings.ax is None:
+        raise ValueError("Укажите настройки ax__odbc_driver, ax__server, ax__database, ax__username и ax__password")
+    employee_email_lookup = AxEmployeeEmailLookup(
+        odbc_driver=settings.ax.odbc_driver,
+        server=settings.ax.server,
+        database=settings.ax.database,
+        username=settings.ax.username,
+        password=settings.ax.password.get_secret_value(),
+    )
+
     email_sender = ExchangeEmailSender(
         username=settings.exchange.username,
         password=settings.exchange.password.get_secret_value(),
@@ -27,7 +36,7 @@ def main() -> None:
         minimum_invoice_age=settings.invoice_selection.minimum_invoice_age,
     )
     mailing_list_builder = RecipientMailingListBuilder()
-    message_builder = InvoiceMessageBuilder()
+    message_builder = InvoiceMessageBuilder(employee_email_lookup=employee_email_lookup)
     attachment_builder = OpenpyxlInvoiceAttachmentBuilder()
     interactor = CreateMailingListInteractor(
         invoice_reader=invoice_reader,
@@ -39,7 +48,11 @@ def main() -> None:
     )
     workbook_path = Path("tests/test_files/DZ_Report.xls")
     command = CreateMailingListCommand(excel_bytes=workbook_path.read_bytes())
-    interactor.execute(command=command)
+    employee_email_lookup.connect()
+    try:
+        interactor.execute(command=command)
+    finally:
+        employee_email_lookup.disconnect()
 
 if __name__ == "__main__":
     main()
