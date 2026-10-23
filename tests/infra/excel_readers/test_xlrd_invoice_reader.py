@@ -10,7 +10,7 @@ from src.infra.excel_readers.xlrd_invoice_reader import XlrdInvoiceReader
 @pytest.fixture
 def workbook(mocker):
     headers = [
-        "Категория", "Крайний момент оплаты", "Дата счета", "Признак",
+        "Категория", "Крайний момент оплаты", "Дата счета", "Предоплата до загрузки",
         "Полный номер счета", "Счет на", "Юр лицо", "Сервис для срока оплаты", "Рынок", "Сотрудник",
     ]
     header_cells = [Cell(XL_CELL_TEXT, header) for header in headers]

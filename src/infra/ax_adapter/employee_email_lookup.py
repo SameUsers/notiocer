@@ -2,7 +2,7 @@ import pyodbc
 from pyodbc import Connection
 
 
-class AxDatabaseConnection:
+class AxEmployeeEmailLookup:
     def __init__(
         self,
         odbc_driver: str,
@@ -35,3 +35,10 @@ class AxDatabaseConnection:
         if self._connection is not None:
             self._connection.close()
             self._connection = None
+
+    def get_email(self, employee_name: str) -> str:
+        if self._connection is None:
+            raise RuntimeError("Соединение с AX не установлено")
+        cursor = self._connection.cursor()
+        sql_query = """SELECT ..."""
+        return "a.rusin@highlevel.com"
