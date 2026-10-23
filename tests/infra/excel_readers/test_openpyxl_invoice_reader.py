@@ -14,7 +14,7 @@ def invoice_workbook() -> Workbook:
     worksheet = workbook.active
     assert worksheet is not None
     worksheet.append([
-        "Категория", "Крайний момент оплаты", "Дата счета", "Признак",
+        "Категория", "Крайний момент оплаты", "Дата счета", "Предоплата до загрузки",
         "Юр лицо", "Счет на", "Полный номер счета", "Сервис для срока оплаты", "Рынок", "Сотрудник",
     ])
     worksheet.append(["Предоплата", "До загрузки", datetime(2026, 10, 20), "да"])
@@ -87,7 +87,7 @@ def test_read_invoices_returns_invoices_in_row_order(invoice_reader, excel_bytes
 def test_read_invoices_uses_selected_worksheet(invoice_reader, invoice_workbook, invoice_factory):
     worksheet = invoice_workbook.create_sheet("Другие счета")
     worksheet.append([
-        "Дата счета", "Признак", "Примечание", "Крайний момент оплаты", "Категория",
+        "Дата счета", "Предоплата до загрузки", "Примечание", "Крайний момент оплаты", "Категория",
         "Юр лицо", "Счет на", "Полный номер счета", "Сервис для срока оплаты", "Рынок", "Сотрудник",
     ])
     worksheet.append([datetime(2026, 10, 22), "да", "Срочно", "До загрузки", "Предоплата"])

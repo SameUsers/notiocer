@@ -28,7 +28,7 @@ class OpenpyxlInvoiceReader:
             currency=row_values.get("Валюта"),
             category=row_values.get("Категория"),
             payment_due_date=row_values.get("Срок оплаты"),
-            sign=row_values.get("Признак"),
+            sign=row_values.get("Предоплата до загрузки"),
             employee=row_values.get("Сотрудник"),
             equipment_service=row_values.get("Услуга отдела оборудования"),
             transport_reference=row_values.get("Номер контейнера / AWB /авто"),

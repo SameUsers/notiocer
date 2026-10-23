@@ -8,10 +8,19 @@ from src.domain.services.recipient_mailing_list_builder import RecipientMailingL
 from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
 from src.infra.settings import get_settings
 from src.infra.excel_writers.openpyxl_invoice_attachment_builder import OpenpyxlInvoiceAttachmentBuilder
+from src.infra.exchange.exchange_email_sender import ExchangeEmailSender
 
 
 def main() -> None:
     settings = get_settings()
+    if settings.exchange is None:
+        raise ValueError("Укажите exchange__username и exchange__password в окружении или .env")
+    email_sender = ExchangeEmailSender(
+        username=settings.exchange.username,
+        password=settings.exchange.password.get_secret_value(),
+        defult_text=settings.message.mail_tex,
+        default_subject=settings.message.mail_subject
+    )
     invoice_reader = XlrdInvoiceReader()
     invoice_selector = MailingInvoiceSelector(
         allowed_categories=settings.invoice_selection.allowed_categories,
@@ -26,13 +35,11 @@ def main() -> None:
         mailing_list_builder=mailing_list_builder,
         message_builder=message_builder,
         attachment_builder=attachment_builder,
+        email_sender=email_sender,
     )
     workbook_path = Path("tests/test_files/DZ_Report.xls")
     command = CreateMailingListCommand(excel_bytes=workbook_path.read_bytes())
-    messages = interactor.execute(command=command)
-
-    for index, message in enumerate(messages[:5]):
-        Path(f"{index}.xlsx").write_bytes(message.attachment.content)
+    interactor.execute(command=command)
 
 if __name__ == "__main__":
     main()

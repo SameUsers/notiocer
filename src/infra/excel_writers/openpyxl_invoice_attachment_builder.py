@@ -19,7 +19,7 @@ INVOICE_COLUMNS = (
     ("currency", "Валюта"),
     ("category", "Категория"),
     ("payment_due_date", "Срок оплаты"),
-    ("sign", "Признак"),
+    ("sign", "Предоплата до загрузки"),
     ("employee", "Сотрудник"),
     ("equipment_service", "Услуга отдела оборудования"),
     ("transport_reference", "Номер контейнера / AWB /авто"),

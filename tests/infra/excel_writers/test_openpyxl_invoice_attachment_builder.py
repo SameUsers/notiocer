@@ -34,7 +34,7 @@ def test_build_attachment_writes_invoice_fields_and_metadata(invoice_factory):
         assert values["Рынок"] == "РБ"
         assert values["Сотрудник"] == "employee@example.com"
         assert values["Сервис для срока оплаты"] == "Авиа"
-        assert values["Признак"] == "да"
+        assert values["Предоплата до загрузки"] == "да"
         assert values["Юр лицо"] is None
     finally:
         workbook.close()
