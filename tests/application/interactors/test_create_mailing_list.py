@@ -7,9 +7,12 @@ from src.application.commands.create_mailing_list import CreateMailingListComman
 from src.application.interactors.create_mailing_list import CreateMailingListInteractor
 from src.application.ports.invoice_excel_reader import InvoiceExcelReader
 from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
+from src.domain.services.recipient_mailing_list_builder import RecipientMailingListBuilder
+from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
+from src.domain.entity.invoice_message import InvoiceMessage
 
 
-def test_execute_returns_selected_invoices_and_unloads_reader(mocker: MockerFixture, invoice_factory):
+def test_execute_returns_invoice_messages_and_unloads_reader(mocker: MockerFixture, invoice_factory):
     command = CreateMailingListCommand(excel_bytes=b"excel content")
     invoices = [
         invoice_factory(
@@ -25,11 +28,23 @@ def test_execute_returns_selected_invoices_and_unloads_reader(mocker: MockerFixt
     selected_invoices = {invoices[0]}
     invoice_selector = mocker.create_autospec(MailingInvoiceSelector, instance=True, spec_set=True)
     invoice_selector.select_invoices.return_value = selected_invoices
-    interactor = CreateMailingListInteractor(invoice_reader=invoice_reader, invoice_selector=invoice_selector)
+    mailing_list_builder = mocker.create_autospec(RecipientMailingListBuilder, instance=True, spec_set=True)
+    invoices_by_recipient = {"recipient@example.com": [invoices[0]]}
+    mailing_list_builder.build.return_value = invoices_by_recipient
+    messages = [InvoiceMessage(recipient_email="recipient@example.com", invoices=[invoices[0]])]
+    message_builder = mocker.create_autospec(InvoiceMessageBuilder, instance=True, spec_set=True)
+    message_builder.build_messages.return_value = messages
+    interactor = CreateMailingListInteractor(
+        invoice_reader=invoice_reader, invoice_selector=invoice_selector,
+        mailing_list_builder=mailing_list_builder,
+        message_builder=message_builder,
+    )
 
     result = interactor.execute(command=command)
 
-    assert result == selected_invoices
+    assert result == messages
+    mailing_list_builder.build.assert_called_once_with(selected_invoices)
+    message_builder.build_messages.assert_called_once_with(invoices_by_recipient)
     invoice_selector.select_invoices.assert_called_once_with(invoices)
     invoice_reader.load.assert_called_once_with(excel_bytes=command.excel_bytes)
     invoice_reader.read_invoices.assert_called_once_with(worksheet_index=0)
@@ -42,13 +57,21 @@ def test_execute_unloads_reader_and_propagates_read_error(mocker: MockerFixture)
     read_error = ValueError("Ошибка чтения счетов")
     invoice_reader.read_invoices.side_effect = read_error
     invoice_selector = mocker.create_autospec(MailingInvoiceSelector, instance=True, spec_set=True)
-    interactor = CreateMailingListInteractor(invoice_reader=invoice_reader, invoice_selector=invoice_selector)
+    mailing_list_builder = mocker.create_autospec(RecipientMailingListBuilder, instance=True, spec_set=True)
+    message_builder = mocker.create_autospec(InvoiceMessageBuilder, instance=True, spec_set=True)
+    interactor = CreateMailingListInteractor(
+        invoice_reader=invoice_reader, invoice_selector=invoice_selector,
+        mailing_list_builder=mailing_list_builder,
+        message_builder=message_builder,
+    )
 
     with pytest.raises(ValueError) as error:
         interactor.execute(command=command)
 
     assert error.value is read_error
     invoice_selector.select_invoices.assert_not_called()
+    mailing_list_builder.build.assert_not_called()
+    message_builder.build_messages.assert_not_called()
     invoice_reader.load.assert_called_once_with(excel_bytes=command.excel_bytes)
     invoice_reader.read_invoices.assert_called_once_with(worksheet_index=0)
     invoice_reader.unload.assert_called_once_with()
@@ -62,11 +85,19 @@ def test_execute_unloads_reader_and_propagates_selection_error(mocker: MockerFix
     invoice_selector = mocker.create_autospec(MailingInvoiceSelector, instance=True, spec_set=True)
     selection_error = ValueError("Ошибка отбора счетов")
     invoice_selector.select_invoices.side_effect = selection_error
-    interactor = CreateMailingListInteractor(invoice_reader=invoice_reader, invoice_selector=invoice_selector)
+    mailing_list_builder = mocker.create_autospec(RecipientMailingListBuilder, instance=True, spec_set=True)
+    message_builder = mocker.create_autospec(InvoiceMessageBuilder, instance=True, spec_set=True)
+    interactor = CreateMailingListInteractor(
+        invoice_reader=invoice_reader, invoice_selector=invoice_selector,
+        mailing_list_builder=mailing_list_builder,
+        message_builder=message_builder,
+    )
 
     with pytest.raises(ValueError) as error:
         interactor.execute(command=command)
 
     assert error.value is selection_error
+    mailing_list_builder.build.assert_not_called()
+    message_builder.build_messages.assert_not_called()
     invoice_selector.select_invoices.assert_called_once_with(invoices)
     invoice_reader.unload.assert_called_once_with()

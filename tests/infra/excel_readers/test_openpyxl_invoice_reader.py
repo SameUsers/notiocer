@@ -5,7 +5,7 @@ from zipfile import BadZipFile
 import pytest
 from openpyxl import Workbook
 
-from src.infra.openpyxl_invoice_reader import OpenpyxlInvoiceReader
+from src.infra.excel_readers.openpyxl_invoice_reader import OpenpyxlInvoiceReader
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def invoice_workbook() -> Workbook:
     assert worksheet is not None
     worksheet.append([
         "Категория", "Крайний момент оплаты", "Дата счета", "Признак",
-        "Юр лицо", "Счет на", "Полный номер счета",
+        "Юр лицо", "Счет на", "Полный номер счета", "Сервис для срока оплаты", "Рынок", "Сотрудник",
     ])
     worksheet.append(["Предоплата", "До загрузки", datetime(2026, 10, 20), "да"])
     worksheet.append(["Доплата", "После загрузки", datetime(2026, 10, 21), "да"])
@@ -88,7 +88,7 @@ def test_read_invoices_uses_selected_worksheet(invoice_reader, invoice_workbook,
     worksheet = invoice_workbook.create_sheet("Другие счета")
     worksheet.append([
         "Дата счета", "Признак", "Примечание", "Крайний момент оплаты", "Категория",
-        "Юр лицо", "Счет на", "Полный номер счета",
+        "Юр лицо", "Счет на", "Полный номер счета", "Сервис для срока оплаты", "Рынок", "Сотрудник",
     ])
     worksheet.append([datetime(2026, 10, 22), "да", "Срочно", "До загрузки", "Предоплата"])
     with BytesIO() as excel_buffer:
@@ -115,34 +115,34 @@ def test_read_invoices_returns_empty_list_for_headers_only(invoice_reader, invoi
 
 
 @pytest.mark.parametrize(
-    ("missing_column", "missing_header"),
+    ("missing_column", "missing_field"),
     [
-        (1, "Категория"), (2, "Крайний момент оплаты"), (3, "Дата счета"),
-        (4, "Признак"), (5, "Юр лицо"), (6, "Счет на"), (7, "Полный номер счета"),
+        (1, "category"), (2, "payment_terms"), (3, "invoice_date"),
+        (4, "sign"), (5, "legal_entity"), (6, "subject"), (7, "invoice_number"),
     ],
 )
-def test_read_invoices_reports_missing_header(
-    invoice_reader, invoice_workbook, missing_column, missing_header,
+def test_read_invoices_preserves_missing_columns_as_none(
+    invoice_reader, invoice_workbook, missing_column, missing_field,
 ):
     invoice_workbook.active.delete_cols(missing_column)
     with BytesIO() as excel_buffer:
         invoice_workbook.save(excel_buffer)
         invoice_reader.load(excel_buffer.getvalue())
 
-    with pytest.raises(KeyError) as error:
-        invoice_reader.read_invoices(worksheet_index=0)
-    assert error.value.args == (missing_header,)
+    invoices = invoice_reader.read_invoices(worksheet_index=0)
+    assert len(invoices) == 2
+    assert all(getattr(invoice, missing_field) is None for invoice in invoices)
 
 
 @pytest.mark.parametrize(
     "empty_columns",
-    [(column,) for column in range(1, 8)] + [tuple(range(1, 8))],
+    [(column,) for column in range(1, 8)] + [tuple(range(1, 11))],
 )
 def test_read_invoices_preserves_missing_values(invoice_reader, invoice_workbook, empty_columns, invoice_factory):
     worksheet = invoice_workbook.active
     for column_index in empty_columns:
         worksheet.cell(row=2, column=column_index).value = None
-    expected_values = [worksheet.cell(row=2, column=column_index).value for column_index in range(1, 8)]
+    expected_values = [worksheet.cell(row=2, column=column_index).value for column_index in range(1, 11)]
     with BytesIO() as excel_buffer:
         invoice_workbook.save(excel_buffer)
         invoice_reader.load(excel_buffer.getvalue())
@@ -185,6 +185,9 @@ def test_read_invoices_maps_invoice_details(invoice_reader, invoice_workbook, in
     worksheet.cell(row=2, column=5).value = "ООО Перевозчик"
     worksheet.cell(row=2, column=6).value = "Перевозка груза"
     worksheet.cell(row=2, column=7).value = "INV-001"
+    worksheet.cell(row=2, column=8).value = "Отдел перевозок"
+    worksheet.cell(row=2, column=9).value = "РБ"
+    worksheet.cell(row=2, column=10).value = "employee@example.com"
     with BytesIO() as excel_buffer:
         invoice_workbook.save(excel_buffer)
         invoice_reader.load(excel_buffer.getvalue())
@@ -193,6 +196,8 @@ def test_read_invoices_maps_invoice_details(invoice_reader, invoice_workbook, in
         category="Предоплата", payment_terms="До загрузки",
         invoice_date=datetime(2026, 10, 20), sign="да",
         legal_entity="ООО Перевозчик", subject="Перевозка груза", invoice_number="INV-001",
+        payment_service="Отдел перевозок",
+        market="РБ", employee="employee@example.com",
     )
 
 
