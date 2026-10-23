@@ -8,7 +8,10 @@ def test_send_email_uses_recipient_and_attachment_without_connecting(mocker):
     credentials_factory = mocker.patch("src.infra.exchange.exchange_email_sender.Credentials")
     message_factory = mocker.patch("src.infra.exchange.exchange_email_sender.Message")
     attachment_factory = mocker.patch("src.infra.exchange.exchange_email_sender.FileAttachment")
-    sender = ExchangeEmailSender(username="sender@example.com", password="test-password")
+    sender = ExchangeEmailSender(
+        username="sender@example.com", password="test-password",
+        defult_text="Invoice report", default_subject="Unpaid invoices",
+    )
     message = PreparedInvoiceMessage(
         recipient_email="recipient@example.com",
         invoices=[],
@@ -27,4 +30,6 @@ def test_send_email_uses_recipient_and_attachment_without_connecting(mocker):
     assert message_arguments["to_recipients"][0].email_address == "recipient@example.com"
     attachment_factory.assert_called_once_with(name="invoices.xlsx", content=b"xlsx", content_type="application/test")
     message_factory.return_value.attach.assert_called_once_with(attachment_factory.return_value)
-    message_factory.return_value.send_and_save.assert_called_once_with()
+    assert message_arguments["subject"] == "Unpaid invoices"
+    assert message_arguments["body"] == "Invoice report"
+    message_factory.return_value.send_and_save.assert_not_called()

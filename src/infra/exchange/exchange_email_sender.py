@@ -8,7 +8,8 @@ from exchangelib import (
 )
 
 from src.application.dto.prepared_invoice_message import PreparedInvoiceMessage
-
+from pathlib import Path
+from uuid import uuid4
 
 class ExchangeEmailSender:
     def __init__(
@@ -18,6 +19,8 @@ class ExchangeEmailSender:
         defult_text: str,
         default_subject: str
     ) -> None:
+        self._default_body = defult_text
+        self._default_subject = default_subject
         credentials = Credentials(
             username=username,
             password=password,
@@ -28,16 +31,19 @@ class ExchangeEmailSender:
             autodiscover=True,
             credentials=credentials,
         )
+        self.counter = 0
 
     def send_email(self, message: PreparedInvoiceMessage) -> None:
         exchange_message = Message(
             account=self._account,
-            subject="Test Subject",
-            body="Test Body",
+            subject=self._default_subject,
+            body=self._default_body,
+            folder=self._account.drafts,
             to_recipients=[
                 Mailbox(email_address=message.recipient_email)
             ],
         )
+
         exchange_message.attach(
             FileAttachment(
                 name=message.attachment.filename,

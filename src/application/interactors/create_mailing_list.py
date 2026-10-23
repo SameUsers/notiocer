@@ -4,7 +4,6 @@ from ..ports.invoice_excel_reader import InvoiceExcelReader
 from ...domain.services.mailing_invoice_selector import MailingInvoiceSelector
 from ...domain.services.recipient_mailing_list_builder import RecipientMailingListBuilder
 from ...domain.services.invoice_message_builder import InvoiceMessageBuilder
-from ..ports.employee_email_lookup import EmployeeEmailLookup
 from ..ports.invoice_attachment_builder import InvoiceAttachmentBuilder
 from ..ports.email_sender import EmailSender
 
@@ -16,10 +15,8 @@ class CreateMailingListInteractor:
         invoice_selector: MailingInvoiceSelector,
         mailing_list_builder: RecipientMailingListBuilder,
         message_builder: InvoiceMessageBuilder,
-        email_sender: EmailSender,
-        employee_email_lookup: EmployeeEmailLookup | None = None,
+        email_sender: EmailSender
     ) -> None:
-        self._employee_email_lookup = employee_email_lookup
         self._attachment_builder = attachment_builder
         self._invoice_reader = invoice_reader
         self._invoice_selector = invoice_selector
@@ -45,6 +42,5 @@ class CreateMailingListInteractor:
             ]
             for message in prepared_messages:
                 self._email_sender.send_email(message)
-
         finally:
             self._invoice_reader.unload()

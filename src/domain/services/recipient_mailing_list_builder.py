@@ -5,16 +5,17 @@ from ..entity.invoice import Invoice
 
 
 class RecipientMailingListBuilder:
-    def build(self, selected_invoices: Iterable[Invoice]) -> dict[str, list[Invoice]]:
+    def build(self, selected_invoices: Iterable[Invoice]) -> dict[str | None, list[Invoice]]:
         cmtd_services = {"Море", "ЖД", "Море+ЖД", "Авто.ДКП", "Иное.ДКП"}
         invoices_by_recipient = defaultdict(list)
         for invoice in selected_invoices:
-            if invoice.payment_service in cmtd_services and invoice.market == "РБ":
-                invoices_by_recipient["CMTD_BY_CM@stalogistic.com"].append(invoice)
-            elif invoice.payment_service in cmtd_services and invoice.market == "РФ":
-                invoices_by_recipient["CMTD_RU_CM@stalogistic.com"].append(invoice)
-            elif invoice.payment_service in cmtd_services and invoice.market not in {"РФ", "РБ"}:
-                invoices_by_recipient["ctd_cm@stalogistic.com"].append(invoice)
+            if invoice.payment_service in cmtd_services:
+                if invoice.market == "РБ":
+                    invoices_by_recipient["CMTD_BY_CM@stalogistic.com"].append(invoice)
+                elif invoice.market == "РФ":
+                    invoices_by_recipient["CMTD_RU_CM@stalogistic.com"].append(invoice)
+                else:
+                    invoices_by_recipient["ctd_cm@stalogistic.com"].append(invoice)
             
             if invoice.payment_service in {"Авиа"} and invoice.market == "РБ":
                 invoices_by_recipient["CM_Air_BY@stalogistic.com"].append(invoice)

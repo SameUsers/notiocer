@@ -7,7 +7,6 @@ from src.application.commands.create_mailing_list import CreateMailingListComman
 from src.application.interactors.create_mailing_list import CreateMailingListInteractor
 from src.application.ports.invoice_excel_reader import InvoiceExcelReader
 from src.application.ports.email_sender import EmailSender
-from src.application.ports.employee_email_lookup import EmployeeEmailLookup
 from src.application.ports.invoice_attachment_builder import InvoiceAttachmentBuilder
 from src.application.dto.email_attachment import EmailAttachment
 from src.application.dto.prepared_invoice_message import PreparedInvoiceMessage
@@ -39,14 +38,12 @@ def test_execute_sends_invoice_messages_and_unloads_reader(mocker: MockerFixture
     messages = [InvoiceMessage(recipient_email="recipient@example.com", invoices=[invoices[0]])]
     message_builder = mocker.create_autospec(InvoiceMessageBuilder, instance=True, spec_set=True)
     message_builder.build_messages.return_value = messages
-    employee_email_lookup = mocker.create_autospec(EmployeeEmailLookup, instance=True, spec_set=True)
     interactor = CreateMailingListInteractor(
         invoice_reader=invoice_reader, invoice_selector=invoice_selector,
         mailing_list_builder=mailing_list_builder,
         message_builder=message_builder,
         attachment_builder=attachment_builder,
         email_sender=email_sender,
-        employee_email_lookup=employee_email_lookup,
     )
 
     result = interactor.execute(command=command)
@@ -73,14 +70,12 @@ def test_execute_unloads_reader_and_propagates_read_error(mocker: MockerFixture,
     invoice_selector = mocker.create_autospec(MailingInvoiceSelector, instance=True, spec_set=True)
     mailing_list_builder = mocker.create_autospec(RecipientMailingListBuilder, instance=True, spec_set=True)
     message_builder = mocker.create_autospec(InvoiceMessageBuilder, instance=True, spec_set=True)
-    employee_email_lookup = mocker.create_autospec(EmployeeEmailLookup, instance=True, spec_set=True)
     interactor = CreateMailingListInteractor(
         invoice_reader=invoice_reader, invoice_selector=invoice_selector,
         mailing_list_builder=mailing_list_builder,
         message_builder=message_builder,
         attachment_builder=attachment_builder,
         email_sender=email_sender,
-        employee_email_lookup=employee_email_lookup,
     )
 
     with pytest.raises(ValueError) as error:
@@ -107,14 +102,12 @@ def test_execute_unloads_reader_and_propagates_selection_error(mocker: MockerFix
     invoice_selector.select_invoices.side_effect = selection_error
     mailing_list_builder = mocker.create_autospec(RecipientMailingListBuilder, instance=True, spec_set=True)
     message_builder = mocker.create_autospec(InvoiceMessageBuilder, instance=True, spec_set=True)
-    employee_email_lookup = mocker.create_autospec(EmployeeEmailLookup, instance=True, spec_set=True)
     interactor = CreateMailingListInteractor(
         invoice_reader=invoice_reader, invoice_selector=invoice_selector,
         mailing_list_builder=mailing_list_builder,
         message_builder=message_builder,
         attachment_builder=attachment_builder,
         email_sender=email_sender,
-        employee_email_lookup=employee_email_lookup,
     )
 
     with pytest.raises(ValueError) as error:

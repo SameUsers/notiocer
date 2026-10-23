@@ -10,8 +10,8 @@ class InvoiceSelectionSettings(BaseModel):
     minimum_invoice_age: timedelta = timedelta(days=3)
 
 class EmailMessageSettings(BaseModel):
-    mail_subject = "Неполученные предоплаты до загрузки"
-    mail_tex = """Добрый день.
+    mail_subject: str = "Неполученные предоплаты до загрузки"
+    mail_tex: str = """Добрый день.
 Направляем список счетов с неполученной в срок предоплатой до загрузки.
  
 Условия контроля:
@@ -28,7 +28,16 @@ class ExchangeSettings(BaseModel):
     password: SecretStr = SecretStr("n3Q47GEd")
 
 
+class AxSettings(BaseModel):
+    odbc_driver: str = "ODBC Driver 17 for SQL Server"
+    server: str = "AXSQL2.sta.local"
+    database: str = "STA_Prod"
+    username: str ="qvWriter"
+    password: SecretStr = SecretStr("qv_pa$$woRd")
+
+
 class AppSettings(BaseSettings):
+    ax: AxSettings = Field(default_factory=AxSettings)
     invoice_selection: InvoiceSelectionSettings = Field(default_factory=InvoiceSelectionSettings)
     exchange: ExchangeSettings = Field(default_factory=ExchangeSettings)
     message: EmailMessageSettings = Field(default_factory=EmailMessageSettings)
