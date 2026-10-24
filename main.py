@@ -1,8 +1,8 @@
-from pathlib import Path
-
-from src.application.commands.create_mailing_list import CreateMailingListCommand
 from src.application.interactors.create_mailing_list_from_excel import (
     CreateMailingListFromExcelInteractor,
+)
+from src.controllers.local_excel_report_controller import (
+    LocalExcelReportController,
 )
 from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
 from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
@@ -20,6 +20,7 @@ from src.infra.settings import get_settings
 
 def main() -> None:
     settings = get_settings()
+
     employee_email_lookup = AxEmployeeEmailLookup(
         odbc_driver=settings.ax.odbc_driver,
         server=settings.ax.server,
@@ -27,6 +28,7 @@ def main() -> None:
         username=settings.ax.username,
         password=settings.ax.password.get_secret_value(),
     )
+    employee_email_lookup.connect()
 
     email_sender = ExchangeEmailSender(
         username=settings.exchange.username,
@@ -35,12 +37,16 @@ def main() -> None:
         default_subject=settings.message.mail_subject,
     )
     invoice_reader = XlrdInvoiceReader()
+
     invoice_selector = MailingInvoiceSelector(
         allowed_categories=settings.invoice_selection.allowed_categories,
         minimum_invoice_age=settings.invoice_selection.minimum_invoice_age,
     )
+
     mailing_list_builder = RecipientMailingListBuilder()
+
     message_builder = InvoiceMessageBuilder(employee_email_lookup=employee_email_lookup)
+
     attachment_builder = OpenpyxlInvoiceAttachmentBuilder()
     interactor = CreateMailingListFromExcelInteractor(
         invoice_reader=invoice_reader,
@@ -50,13 +56,12 @@ def main() -> None:
         attachment_builder=attachment_builder,
         email_sender=email_sender,
     )
-    workbook_path = Path('tests/test_files/DZ_Report.xls')
-    command = CreateMailingListCommand(excel_bytes=workbook_path.read_bytes())
-    employee_email_lookup.connect()
-    try:
-        interactor.execute(command=command)
-    finally:
-        employee_email_lookup.disconnect()
+
+    report_controller = LocalExcelReportController(
+        report_path=settings.invoice_report_file.path,
+        use_case=interactor,
+    )
+    report_controller.run()
 
 
 if __name__ == '__main__':

@@ -1,8 +1,13 @@
 from datetime import timedelta
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class InvoiceReportFileSettings(BaseModel):
+    path: Path = Field(default=Path('workdir/DZ_Report.xls'))
 
 
 class InvoiceSelectionSettings(BaseModel):
@@ -47,6 +52,9 @@ class AppSettings(BaseSettings):
     message: EmailMessageSettings = Field(default_factory=EmailMessageSettings)
     model_config = SettingsConfigDict(
         env_file='.env', case_sensitive=True, env_nested_delimiter='__'
+    )
+    invoice_report_file: InvoiceReportFileSettings = Field(
+        default_factory=InvoiceReportFileSettings
     )
 
 
