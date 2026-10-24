@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Annotated
 
 
 @dataclass(frozen=True)
@@ -41,30 +41,30 @@ class Invoice:
         calculated_payment_term: Расчётный срок оплаты.
     """
 
-    client_id: Any
-    legal_entity: str | None
-    subject: str | None
-    invoice_number: str | None
-    invoice_date: datetime | None
-    invoice_amount: float | None
-    balance: float | None
-    currency: str | None
-    category: str | None
-    payment_due_date: datetime | None
-    sign: str | None
-    employee: str | None
-    equipment_service: str | None
-    transport_reference: str | None
-    unloading_date: datetime | None
-    sfb_curator: str | None
-    shipping_date: datetime | None
-    estimated_arrival_date: datetime | None
-    market: str | None
-    payment_service: str | None
-    payment_terms_type: str | None
-    contract_details: str | None
-    service_type: str | None
-    partial_prepayment: Any
-    partial_prepayment_terms: str | None
-    payment_terms: str | None
-    calculated_payment_term: Any
+    client_id: Annotated[Any, "ID клиента"]
+    legal_entity: Annotated[str | None, "Юр лицо"]
+    subject: Annotated[str | None, "Счет на"]
+    invoice_number: Annotated[str | None, "Полный номер счета"]
+    invoice_date: Annotated[datetime | None, "Дата счета"]
+    invoice_amount: Annotated[float | None, "Сумма счета"]
+    balance: Annotated[float | None, "Сальдо"]
+    currency: Annotated[str | None, "Валюта"]
+    category: Annotated[str | None, "Категория"]
+    payment_due_date: Annotated[datetime | None, "Срок оплаты"]
+    sign: Annotated[str | None, "Предоплата до загрузки"]
+    employee: Annotated[str | None, "Сотрудник"]
+    equipment_service: Annotated[str | None, "Услуга отдела оборудования"]
+    transport_reference: Annotated[str | None, "Номер контейнера / AWB /авто"]
+    unloading_date: Annotated[datetime | None, "Дата выгрузки"]
+    sfb_curator: Annotated[str | None, "Куратор СФБ"]
+    shipping_date: Annotated[datetime | None, "Дата отгрузки"]
+    estimated_arrival_date: Annotated[datetime | None, "Прогнозная ETA"]
+    market: Annotated[str | None, "Рынок"]
+    payment_service: Annotated[str | None, "Сервис для срока оплаты"]
+    payment_terms_type: Annotated[str | None, "Тип платежных условий"]
+    contract_details: Annotated[str | None, "№ и дата договора"]
+    service_type: Annotated[str | None, "Тип сервиса"]
+    partial_prepayment: Annotated[Any, "Частичная предоплата"]
+    partial_prepayment_terms: Annotated[str | None, "Условия частичной предоплаты"]
+    payment_terms: Annotated[str | None, "Крайний момент оплаты"]
+    calculated_payment_term: Annotated[Any, "Расчетный с/о"]
