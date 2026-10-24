@@ -1,21 +1,25 @@
 from pathlib import Path
 
-from src.infra.excel_readers.xlrd_invoice_reader import XlrdInvoiceReader
 from src.application.commands.create_mailing_list import CreateMailingListCommand
-from src.application.interactors.create_mailing_list_from_excel import CreateMailingListInteractor
-from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
-from src.domain.services.recipient_mailing_list_builder import RecipientMailingListBuilder
+from src.application.interactors.create_mailing_list_from_excel import (
+    CreateMailingListFromExcelInteractor,
+)
 from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
-from src.infra.settings import get_settings
-from src.infra.excel_writers.openpyxl_invoice_attachment_builder import OpenpyxlInvoiceAttachmentBuilder
-from src.infra.exchange.exchange_email_sender import ExchangeEmailSender
+from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
+from src.domain.services.recipient_mailing_list_builder import (
+    RecipientMailingListBuilder,
+)
 from src.infra.ax_adapter.employee_email_lookup import AxEmployeeEmailLookup
+from src.infra.excel_readers.xlrd_invoice_reader import XlrdInvoiceReader
+from src.infra.excel_writers.openpyxl_invoice_attachment_builder import (
+    OpenpyxlInvoiceAttachmentBuilder,
+)
+from src.infra.exchange.exchange_email_sender import ExchangeEmailSender
+from src.infra.settings import get_settings
 
 
 def main() -> None:
     settings = get_settings()
-    if settings.ax is None:
-        raise ValueError("Укажите настройки ax__odbc_driver, ax__server, ax__database, ax__username и ax__password")
     employee_email_lookup = AxEmployeeEmailLookup(
         odbc_driver=settings.ax.odbc_driver,
         server=settings.ax.server,
@@ -28,7 +32,7 @@ def main() -> None:
         username=settings.exchange.username,
         password=settings.exchange.password.get_secret_value(),
         defult_text=settings.message.mail_tex,
-        default_subject=settings.message.mail_subject
+        default_subject=settings.message.mail_subject,
     )
     invoice_reader = XlrdInvoiceReader()
     invoice_selector = MailingInvoiceSelector(
@@ -38,7 +42,7 @@ def main() -> None:
     mailing_list_builder = RecipientMailingListBuilder()
     message_builder = InvoiceMessageBuilder(employee_email_lookup=employee_email_lookup)
     attachment_builder = OpenpyxlInvoiceAttachmentBuilder()
-    interactor = CreateMailingListInteractor(
+    interactor = CreateMailingListFromExcelInteractor(
         invoice_reader=invoice_reader,
         invoice_selector=invoice_selector,
         mailing_list_builder=mailing_list_builder,
@@ -46,7 +50,7 @@ def main() -> None:
         attachment_builder=attachment_builder,
         email_sender=email_sender,
     )
-    workbook_path = Path("tests/test_files/DZ_Report.xls")
+    workbook_path = Path('tests/test_files/DZ_Report.xls')
     command = CreateMailingListCommand(excel_bytes=workbook_path.read_bytes())
     employee_email_lookup.connect()
     try:
@@ -54,5 +58,6 @@ def main() -> None:
     finally:
         employee_email_lookup.disconnect()
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()

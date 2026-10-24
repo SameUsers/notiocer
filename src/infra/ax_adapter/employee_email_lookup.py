@@ -20,20 +20,22 @@ class AxEmployeeEmailLookup:
         self._database = database
         self._username = username
         self._password = password
-        self._cache_path = cache_path if cache_path is not None else Path("data/user_cache.json")
+        self._cache_path = (
+            cache_path if cache_path is not None else Path('data/user_cache.json')
+        )
         self._connection: Connection | None = None
 
     def connect(self) -> None:
         if self._connection is not None:
-            raise RuntimeError("Соединение уже установлено")
+            raise RuntimeError('Соединение уже установлено')
 
         connection_string = (
-            f"DRIVER={{{self._odbc_driver}}};"
-            f"SERVER={self._server};"
-            f"DATABASE={self._database};"
-            f"UID={self._username};"
-            f"PWD={self._password};"
-            "TrustServerCertificate=yes;"
+            f'DRIVER={{{self._odbc_driver}}};'
+            f'SERVER={self._server};'
+            f'DATABASE={self._database};'
+            f'UID={self._username};'
+            f'PWD={self._password};'
+            'TrustServerCertificate=yes;'
         )
 
         self._connection = pyodbc.connect(connection_string)
@@ -47,7 +49,7 @@ class AxEmployeeEmailLookup:
         if not self._cache_path.exists():
             return {}
 
-        with self._cache_path.open("r", encoding="utf-8") as cache:
+        with self._cache_path.open('r', encoding='utf-8') as cache:
             return json.load(cache)
 
     def _save_cache(self, cache: dict[str, str]) -> None:
@@ -55,7 +57,7 @@ class AxEmployeeEmailLookup:
             parents=True,
             exist_ok=True,
         )
-        with self._cache_path.open("w", encoding="utf-8") as file:
+        with self._cache_path.open('w', encoding='utf-8') as file:
             json.dump(
                 cache,
                 file,
@@ -68,9 +70,9 @@ class AxEmployeeEmailLookup:
         if employee_id in cache:
             return cache[employee_id]
         if self._connection is None:
-            raise RuntimeError("Соединение с AX не установлено")
-        query_path = Path(__file__).resolve().parents[3] / "sql/get_emloye_email.sql"
-        query = query_path.read_text(encoding="utf-8")
+            raise RuntimeError('Соединение с AX не установлено')
+        query_path = Path(__file__).resolve().parents[3] / 'sql/get_emloye_email.sql'
+        query = query_path.read_text(encoding='utf-8')
         cursor = self._connection.cursor()
         try:
             cursor.execute(query, employee_id)

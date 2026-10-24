@@ -2,66 +2,67 @@ from collections.abc import Sequence
 from io import BytesIO
 
 from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
+
 from src.application.dto.email_attachment import EmailAttachment
 from src.domain.entity.invoice import Invoice
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
 
 INVOICE_COLUMNS = (
-    ("client_id", "ID клиента"),
-    ("legal_entity", "Юр лицо"),
-    ("subject", "Счет на"),
-    ("invoice_number", "Полный номер счета"),
-    ("invoice_date", "Дата счета"),
-    ("invoice_amount", "Сумма счета"),
-    ("balance", "Сальдо"),
-    ("currency", "Валюта"),
-    ("category", "Категория"),
-    ("payment_due_date", "Срок оплаты"),
-    ("sign", "Предоплата до загрузки"),
-    ("employee", "Сотрудник"),
-    ("equipment_service", "Услуга отдела оборудования"),
-    ("transport_reference", "Номер контейнера / AWB /авто"),
-    ("unloading_date", "Дата выгрузки"),
-    ("sfb_curator", "Куратор СФБ"),
-    ("shipping_date", "Дата отгрузки"),
-    ("estimated_arrival_date", "Прогнозная ETA"),
-    ("market", "Рынок"),
-    ("payment_service", "Сервис для срока оплаты"),
-    ("payment_terms_type", "Тип платежных условий"),
-    ("contract_details", "№ и дата договора"),
-    ("service_type", "Тип сервиса"),
-    ("partial_prepayment", "Частичная предоплата"),
-    ("partial_prepayment_terms", "Условия частичной предоплаты"),
-    ("payment_terms", "Крайний момент оплаты"),
-    ("calculated_payment_term", "Расчетный с/о"),
+    ('client_id', 'ID клиента'),
+    ('legal_entity', 'Юр лицо'),
+    ('subject', 'Счет на'),
+    ('invoice_number', 'Полный номер счета'),
+    ('invoice_date', 'Дата счета'),
+    ('invoice_amount', 'Сумма счета'),
+    ('balance', 'Сальдо'),
+    ('currency', 'Валюта'),
+    ('category', 'Категория'),
+    ('payment_due_date', 'Срок оплаты'),
+    ('sign', 'Предоплата до загрузки'),
+    ('employee', 'Сотрудник'),
+    ('equipment_service', 'Услуга отдела оборудования'),
+    ('transport_reference', 'Номер контейнера / AWB /авто'),
+    ('unloading_date', 'Дата выгрузки'),
+    ('sfb_curator', 'Куратор СФБ'),
+    ('shipping_date', 'Дата отгрузки'),
+    ('estimated_arrival_date', 'Прогнозная ETA'),
+    ('market', 'Рынок'),
+    ('payment_service', 'Сервис для срока оплаты'),
+    ('payment_terms_type', 'Тип платежных условий'),
+    ('contract_details', '№ и дата договора'),
+    ('service_type', 'Тип сервиса'),
+    ('partial_prepayment', 'Частичная предоплата'),
+    ('partial_prepayment_terms', 'Условия частичной предоплаты'),
+    ('payment_terms', 'Крайний момент оплаты'),
+    ('calculated_payment_term', 'Расчетный с/о'),
 )
 
 
 class OpenpyxlInvoiceAttachmentBuilder:
     def _style_headers(self, worksheet: Worksheet) -> None:
         header_fill = PatternFill(
-            fill_type="solid",
-            fgColor="1F4E78",
+            fill_type='solid',
+            fgColor='1F4E78',
         )
 
         header_font = Font(
-            name="Calibri",
+            name='Calibri',
             size=11,
             bold=True,
-            color="FFFFFF",
+            color='FFFFFF',
         )
 
         header_alignment = Alignment(
-            horizontal="center",
-            vertical="center",
+            horizontal='center',
+            vertical='center',
             wrap_text=True,
         )
 
         border_side = Side(
-            style="thin",
-            color="D9E2F3",
+            style='thin',
+            color='D9E2F3',
         )
 
         for column_index, cell in enumerate(worksheet[1], start=1):
@@ -81,25 +82,26 @@ class OpenpyxlInvoiceAttachmentBuilder:
 
         worksheet.row_dimensions[1].height = 40
 
-
     def build_attachment(self, invoices: Sequence[Invoice]) -> EmailAttachment:
         workbook = Workbook()
         try:
             worksheet = workbook.active
             if worksheet is None:
-                raise RuntimeError("Не удалось создать лист для вложения")
-            worksheet.title = "Счета"
+                raise RuntimeError('Не удалось создать лист для вложения')
+            worksheet.title = 'Счета'
             worksheet.append([header for _, header in INVOICE_COLUMNS])
             self._style_headers(worksheet)
             for invoice in invoices:
-                worksheet.append([getattr(invoice, field_name) for field_name, _ in INVOICE_COLUMNS])
+                worksheet.append(
+                    [getattr(invoice, field_name) for field_name, _ in INVOICE_COLUMNS]
+                )
             with BytesIO() as excel_buffer:
                 workbook.save(excel_buffer)
                 content = excel_buffer.getvalue()
         finally:
             workbook.close()
         return EmailAttachment(
-            filename="invoices.xlsx",
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            filename='invoices.xlsx',
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             content=content,
         )

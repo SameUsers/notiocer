@@ -1,23 +1,18 @@
 from exchangelib import (
-    Account,
     DELEGATE,
+    Account,
     Credentials,
-    Message,
-    Mailbox,
     FileAttachment,
+    Mailbox,
+    Message,
 )
 
 from src.application.dto.prepared_invoice_message import PreparedInvoiceMessage
-from pathlib import Path
-from uuid import uuid4
+
 
 class ExchangeEmailSender:
     def __init__(
-        self,
-        username: str,
-        password: str,
-        defult_text: str,
-        default_subject: str
+        self, username: str, password: str, defult_text: str, default_subject: str
     ) -> None:
         self._default_body = defult_text
         self._default_subject = default_subject
@@ -39,9 +34,7 @@ class ExchangeEmailSender:
             subject=self._default_subject,
             body=self._default_body,
             folder=self._account.drafts,
-            to_recipients=[
-                Mailbox(email_address=message.recipient_email)
-            ],
+            to_recipients=[Mailbox(email_address=message.recipient_email)],
         )
 
         exchange_message.attach(

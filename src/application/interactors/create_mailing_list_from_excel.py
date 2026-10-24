@@ -1,13 +1,16 @@
-from ..dto.prepared_invoice_message import PreparedInvoiceMessage
-from ..commands.create_mailing_list import CreateMailingListCommand
-from ..ports.invoice_excel_reader import InvoiceExcelReader
-from ...domain.services.mailing_invoice_selector import MailingInvoiceSelector
-from ...domain.services.recipient_mailing_list_builder import RecipientMailingListBuilder
 from ...domain.services.invoice_message_builder import InvoiceMessageBuilder
-from ..ports.invoice_attachment_builder import InvoiceAttachmentBuilder
+from ...domain.services.mailing_invoice_selector import MailingInvoiceSelector
+from ...domain.services.recipient_mailing_list_builder import (
+    RecipientMailingListBuilder,
+)
+from ..commands.create_mailing_list import CreateMailingListCommand
+from ..dto.prepared_invoice_message import PreparedInvoiceMessage
 from ..ports.email_sender import EmailSender
+from ..ports.invoice_attachment_builder import InvoiceAttachmentBuilder
+from ..ports.invoice_excel_reader import InvoiceExcelReader
 
-class CreateMailingListInteractor:
+
+class CreateMailingListFromExcelInteractor:
     def __init__(
         self,
         attachment_builder: InvoiceAttachmentBuilder,
@@ -15,7 +18,7 @@ class CreateMailingListInteractor:
         invoice_selector: MailingInvoiceSelector,
         mailing_list_builder: RecipientMailingListBuilder,
         message_builder: InvoiceMessageBuilder,
-        email_sender: EmailSender
+        email_sender: EmailSender,
     ) -> None:
         self._attachment_builder = attachment_builder
         self._invoice_reader = invoice_reader
@@ -36,7 +39,9 @@ class CreateMailingListInteractor:
                 PreparedInvoiceMessage(
                     recipient_email=message.recipient_email,
                     invoices=message.invoices,
-                    attachment=self._attachment_builder.build_attachment(message.invoices),
+                    attachment=self._attachment_builder.build_attachment(
+                        message.invoices
+                    ),
                 )
                 for message in messages
             ]

@@ -5,14 +5,20 @@ import pytest
 from openpyxl import Workbook, load_workbook
 
 from src.application.commands.create_mailing_list import CreateMailingListCommand
+from src.application.interactors.create_mailing_list_from_excel import (
+    CreateMailingListFromExcelInteractor,
+)
 from src.application.ports.email_sender import EmailSender
-from src.application.interactors.create_mailing_list_from_excel import CreateMailingListInteractor
-from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
 from src.application.ports.employee_email_lookup import EmployeeEmailLookup
+from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
 from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
-from src.domain.services.recipient_mailing_list_builder import RecipientMailingListBuilder
+from src.domain.services.recipient_mailing_list_builder import (
+    RecipientMailingListBuilder,
+)
 from src.infra.excel_readers.openpyxl_invoice_reader import OpenpyxlInvoiceReader
-from src.infra.excel_writers.openpyxl_invoice_attachment_builder import OpenpyxlInvoiceAttachmentBuilder
+from src.infra.excel_writers.openpyxl_invoice_attachment_builder import (
+    OpenpyxlInvoiceAttachmentBuilder,
+)
 
 
 @pytest.fixture
@@ -20,12 +26,23 @@ def invoice_report():
     workbook = Workbook()
     try:
         worksheet = workbook.active
-        worksheet.append([
-            "Категория", "Дата счета", "Предоплата до загрузки", "Сервис для срока оплаты",
-            "Рынок", "Сотрудник", "Полный номер счета",
-        ])
-        worksheet.append(["Д0", datetime(2000, 1, 1), "да", "Авиа", "РБ", "Сотрудник", "INV-001"])
-        worksheet.append(["Д0", datetime(2000, 1, 1), "да", "Авиа", "РФ", "Сотрудник", "INV-002"])
+        worksheet.append(
+            [
+                'Категория',
+                'Дата счета',
+                'Предоплата до загрузки',
+                'Сервис для срока оплаты',
+                'Рынок',
+                'Сотрудник',
+                'Полный номер счета',
+            ]
+        )
+        worksheet.append(
+            ['Д0', datetime(2000, 1, 1), 'да', 'Авиа', 'РБ', 'Сотрудник', 'INV-001']
+        )
+        worksheet.append(
+            ['Д0', datetime(2000, 1, 1), 'да', 'Авиа', 'РФ', 'Сотрудник', 'INV-002']
+        )
         with BytesIO() as buffer:
             workbook.save(buffer)
             return buffer.getvalue()
@@ -34,19 +51,25 @@ def invoice_report():
 
 
 def create_interactor(reader, attachment_builder, email_sender, employee_email_lookup):
-    return CreateMailingListInteractor(
+    return CreateMailingListFromExcelInteractor(
         invoice_reader=reader,
-        invoice_selector=MailingInvoiceSelector({"Д0"}, timedelta(days=3)),
+        invoice_selector=MailingInvoiceSelector({'Д0'}, timedelta(days=3)),
         mailing_list_builder=RecipientMailingListBuilder(),
-        message_builder=InvoiceMessageBuilder(employee_email_lookup=employee_email_lookup),
+        message_builder=InvoiceMessageBuilder(
+            employee_email_lookup=employee_email_lookup
+        ),
         attachment_builder=attachment_builder,
         email_sender=email_sender,
     )
 
 
-def test_create_mailing_list_sends_each_recipients_attachment(invoice_report, email_sender, employee_email_lookup):
+def test_create_mailing_list_sends_each_recipients_attachment(
+    invoice_report, email_sender, employee_email_lookup
+):
     reader = OpenpyxlInvoiceReader()
-    interactor = create_interactor(reader, OpenpyxlInvoiceAttachmentBuilder(), email_sender, employee_email_lookup)
+    interactor = create_interactor(
+        reader, OpenpyxlInvoiceAttachmentBuilder(), email_sender, employee_email_lookup
+    )
 
     result = interactor.execute(CreateMailingListCommand(invoice_report))
 
@@ -55,28 +78,40 @@ def test_create_mailing_list_sends_each_recipients_attachment(invoice_report, em
     messages = [call.args[0] for call in email_sender.send_email.call_args_list]
 
     assert {message.recipient_email for message in messages} == {
-        "CM_Air_BY@stalogistic.com", "cm-air-ru@stalogistic.com",
+        'CM_Air_BY@stalogistic.com',
+        'cm-air-ru@stalogistic.com',
     }
-    expected_numbers = {"CM_Air_BY@stalogistic.com": "INV-001", "cm-air-ru@stalogistic.com": "INV-002"}
+    expected_numbers = {
+        'CM_Air_BY@stalogistic.com': 'INV-001',
+        'cm-air-ru@stalogistic.com': 'INV-002',
+    }
     for message in messages:
         workbook = load_workbook(BytesIO(message.attachment.content), data_only=True)
         try:
             rows = list(workbook.active.iter_rows(values_only=True))
             assert len(rows) == 2
-            assert dict(zip(rows[0], rows[1]))["Полный номер счета"] == expected_numbers[message.recipient_email]
+            assert (
+                dict(zip(rows[0], rows[1]))['Полный номер счета']
+                == expected_numbers[message.recipient_email]
+            )
         finally:
             workbook.close()
     with pytest.raises(ValueError):
         _ = reader.workbook
 
 
-
-def test_attachment_failure_propagates_and_unloads_reader(invoice_report, mocker, email_sender, employee_email_lookup):
+def test_attachment_failure_propagates_and_unloads_reader(
+    invoice_report, mocker, email_sender, employee_email_lookup
+):
     reader = OpenpyxlInvoiceReader()
     attachment_builder = OpenpyxlInvoiceAttachmentBuilder()
-    attachment_error = OSError("Cannot create attachment")
-    mocker.patch.object(attachment_builder, "build_attachment", side_effect=attachment_error)
-    interactor = create_interactor(reader, attachment_builder, email_sender, employee_email_lookup)
+    attachment_error = OSError('Cannot create attachment')
+    mocker.patch.object(
+        attachment_builder, 'build_attachment', side_effect=attachment_error
+    )
+    interactor = create_interactor(
+        reader, attachment_builder, email_sender, employee_email_lookup
+    )
 
     with pytest.raises(OSError) as error:
         interactor.execute(CreateMailingListCommand(invoice_report))
@@ -92,11 +127,15 @@ def email_sender(mocker):
     return mocker.create_autospec(EmailSender, instance=True, spec_set=True)
 
 
-def test_sender_failure_propagates_and_unloads_reader(invoice_report, email_sender, employee_email_lookup):
+def test_sender_failure_propagates_and_unloads_reader(
+    invoice_report, email_sender, employee_email_lookup
+):
     reader = OpenpyxlInvoiceReader()
-    send_error = RuntimeError("Exchange is unavailable")
+    send_error = RuntimeError('Exchange is unavailable')
     email_sender.send_email.side_effect = send_error
-    interactor = create_interactor(reader, OpenpyxlInvoiceAttachmentBuilder(), email_sender, employee_email_lookup)
+    interactor = create_interactor(
+        reader, OpenpyxlInvoiceAttachmentBuilder(), email_sender, employee_email_lookup
+    )
 
     with pytest.raises(RuntimeError) as error:
         interactor.execute(CreateMailingListCommand(invoice_report))
@@ -107,7 +146,9 @@ def test_sender_failure_propagates_and_unloads_reader(invoice_report, email_send
         _ = reader.workbook
 
 
-def test_empty_report_does_not_send_emails(invoice_report, email_sender, employee_email_lookup):
+def test_empty_report_does_not_send_emails(
+    invoice_report, email_sender, employee_email_lookup
+):
     workbook = load_workbook(BytesIO(invoice_report))
     try:
         workbook.active.delete_rows(2, 2)
@@ -117,7 +158,9 @@ def test_empty_report_does_not_send_emails(invoice_report, email_sender, employe
     finally:
         workbook.close()
     reader = OpenpyxlInvoiceReader()
-    interactor = create_interactor(reader, OpenpyxlInvoiceAttachmentBuilder(), email_sender, employee_email_lookup)
+    interactor = create_interactor(
+        reader, OpenpyxlInvoiceAttachmentBuilder(), email_sender, employee_email_lookup
+    )
 
     assert interactor.execute(CreateMailingListCommand(empty_report)) is None
     email_sender.send_email.assert_not_called()

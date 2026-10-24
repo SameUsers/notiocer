@@ -6,5 +6,4 @@ from ..dto.email_attachment import EmailAttachment
 
 
 class InvoiceAttachmentBuilder(Protocol):
-    def build_attachment(self, invoices: Sequence[Invoice]) -> EmailAttachment:
-        ...
+    def build_attachment(self, invoices: Sequence[Invoice]) -> EmailAttachment: ...
