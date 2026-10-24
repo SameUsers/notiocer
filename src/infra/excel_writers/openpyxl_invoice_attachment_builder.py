@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import fields
 from io import BytesIO
-from typing import Any
+from typing import Annotated, Any, get_args, get_origin
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -32,7 +32,9 @@ class OpenpyxlInvoiceAttachmentBuilder:
         """
         header_fill = PatternFill(fill_type='solid', fgColor='1F4E78')
         header_font = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
-        header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        header_alignment = Alignment(
+            horizontal='center', vertical='center', wrap_text=True
+        )
         border_side = Side(style='thin', color='D9E2F3')
 
         for column_index, cell in enumerate(worksheet[1], start=1):
@@ -40,8 +42,10 @@ class OpenpyxlInvoiceAttachmentBuilder:
             cell.font = header_font
             cell.alignment = header_alignment
             cell.border = Border(
-                left=border_side, right=border_side,
-                top=border_side, bottom=border_side,
+                left=border_side,
+                right=border_side,
+                top=border_side,
+                bottom=border_side,
             )
             column_letter = get_column_letter(column_index)
             worksheet.column_dimensions[column_letter].width = 22
@@ -52,12 +56,17 @@ class OpenpyxlInvoiceAttachmentBuilder:
     def _column_title(field_info: Any) -> str:
         """Возвращает человекочитаемый заголовок колонки из меты ``Annotated``.
 
-        Если у поля есть метаданные ``Annotated`` — берётся первая строка.
-        Иначе используется имя поля.
+        Метаданные ``Annotated`` хранятся внутри типа поля
+        (``field_info.type``), а не в ``field_info.metadata`` — последний
+        содержит только метаданные из ``dataclasses.field(metadata=...)``.
+        Если у поля есть строка-мета ``Annotated``, она используется как
+        заголовок; иначе возвращается имя поля.
         """
-        metadata = getattr(field_info, 'metadata', ())
-        if metadata:
-            return str(metadata[0])
+        annotation = field_info.type
+        if get_origin(annotation) is Annotated:
+            args = get_args(annotation)
+            if len(args) > 1 and isinstance(args[1], str):
+                return args[1]
         return field_info.name
 
     def build_attachment(self, invoices: Sequence[Invoice]) -> EmailAttachment:

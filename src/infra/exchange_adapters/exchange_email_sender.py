@@ -6,29 +6,31 @@ from exchangelib import (
     Mailbox,
     Message,
 )
-
+from src.utils.retry_decorator import retry_sync
 from src.application.dto.prepared_invoice_message import PreparedInvoiceMessage
 
 
 class ExchangeEmailSender:
-    """Sends prepared invoice messages via Microsoft Exchange.
+    """Отправляет подготовленные сообщения со счетами через Microsoft Exchange.
 
-    Connects to an Exchange account on construction using autodiscover
-    and sends each message as an email with the configured default
-    subject and body, plus the message's attachment.
+    Подключается к учётной записи Exchange при создании с помощью
+    autodiscover и отправляет каждое сообщение как email с настроенными
+    темой и телом по умолчанию, а также вложением из сообщения.
     """
 
     def __init__(
         self, username: str, password: str, defult_text: str, default_subject: str
     ) -> None:
-        """Initialize the sender and connect to the Exchange account.
+        """Инициализирует отправитель и подключается к учётной записи Exchange.
 
         Args:
-            username: Exchange account address used for authentication
-                and as the sender address.
-            password: Password for the Exchange account.
-            defult_text: Default body text used for every outgoing email.
-            default_subject: Default subject used for every outgoing email.
+            username: Адрес учётной записи Exchange, используемый для
+                аутентификации и как адрес отправителя.
+            password: Пароль для учётной записи Exchange.
+            defult_text: Текст тела по умолчанию, используемый для каждого
+                исходящего письма.
+            default_subject: Тема по умолчанию, используемая для каждого
+                исходящего письма.
         """
         self._default_body = defult_text
         self._default_subject = default_subject
@@ -43,15 +45,22 @@ class ExchangeEmailSender:
             credentials=credentials,
         )
 
+    @retry_sync(count=3, delay=2)
     def send_email(self, message: PreparedInvoiceMessage) -> None:
-        """Send the given prepared invoice message.
+        """Отправляет переданное подготовленное сообщение со счетами.
 
-        Builds an Exchange message with the default subject and body,
-        attaches the message's attachment, and sends it while saving a
-        copy.
+        Формирует сообщение Exchange с темой и телом по умолчанию,
+        прикрепляет вложение из сообщения и отправляет его, сохраняя
+        копию. При возникновении исключения вызов повторяется до трёх
+        раз с задержкой в 2 секунды между попытками (см. декоратор
+        :func:`retry_sync`).
 
         Args:
-            message: The prepared invoice message to deliver.
+            message: Подготовленное сообщение со счетами, которое нужно доставить.
+
+        Raises:
+            Exception: Последнее исключение, возникшее после исчерпания
+                всех попыток отправки.
         """
         exchange_message = Message(
             account=self._account,

@@ -2,3 +2,6 @@
 *__pycache__
 *cache
 test.json
+tests
+.env
+workdir

@@ -15,48 +15,48 @@ from src.domain.entity.invoice import Invoice
 
 
 class XlrdInvoiceReader:
-    """Reads invoices from a legacy ``.xls`` workbook using xlrd.
+    """Читает счета из устаревшей книги ``.xls`` с помощью xlrd.
 
-    The reader follows a load/read/unload lifecycle: call :meth:`load`
-    with the raw workbook bytes, read invoices with
-    :meth:`read_invoices`, and release the workbook with :meth:`unload`.
+    Ридер следует жизненному циклу загрузка/чтение/выгрузка: вызовите
+    :meth:`load` с сырыми байтами книги, прочитайте счета с помощью
+    :meth:`read_invoices` и освободите книгу с помощью :meth:`unload`.
     """
 
     def __init__(self) -> None:
-        """Initialize the reader with no workbook loaded."""
+        """Инициализирует ридер без загруженной книги."""
         self._workbook: Book | None = None
 
     def load(self, excel_bytes: bytes) -> None:
-        """Load a workbook from raw Excel bytes into memory.
+        """Загружает книгу из сырых байтов Excel в память.
 
         Args:
-            excel_bytes: Raw content of the ``.xls`` file to parse.
+            excel_bytes: Сырое содержимое файла ``.xls`` для разбора.
 
         Raises:
-            RuntimeError: If a workbook is already loaded. Call
-                :meth:`unload` first.
+            RuntimeError: Если книга уже загружена. Сначала вызовите
+                :meth:`unload`.
         """
         if self._workbook is not None:
             raise RuntimeError('Файл уже был загружен. Сначала вызовите unload()')
         self._workbook = open_workbook(file_contents=excel_bytes)
 
     def unload(self) -> None:
-        """Release the loaded workbook and reset the reader state."""
+        """Освобождает загруженную книгу и сбрасывает состояние ридера."""
         if self._workbook is not None:
             self._workbook.release_resources()
             self._workbook = None
 
     def read_invoices(self, worksheet_index: int) -> list[Invoice]:
-        """Read all invoices from a worksheet.
+        """Читает все счета с листа.
 
-        Skips the header row and maps every subsequent row to an
-        invoice.
+        Пропускает строку заголовков и преобразует каждую последующую
+        строку в счёт.
 
         Args:
-            worksheet_index: Zero-based index of the worksheet to read.
+            worksheet_index: Индекс листа (начиная с нуля) для чтения.
 
         Returns:
-            A list of invoices parsed from the worksheet.
+            Список счетов, разобранных с листа.
         """
         row_count = self._get_row_count(worksheet_index=worksheet_index)
         headers = self._read_headers(worksheet_index=worksheet_index)
@@ -74,53 +74,53 @@ class XlrdInvoiceReader:
         return [self._map_row_to_invoice(row_values) for row_values in invoice_rows]
 
     def _read_headers(self, worksheet_index: int) -> Sequence[Any]:
-        """Read the header row of a worksheet.
+        """Читает строку заголовков листа.
 
         Args:
-            worksheet_index: Zero-based index of the worksheet.
+            worksheet_index: Индекс листа (начиная с нуля).
 
         Returns:
-            The cell values of the header row.
+            Значения ячеек строки заголовков.
         """
         return self._read_row(row_index=0, worksheet_index=worksheet_index)
 
     def _get_row_count(self, worksheet_index: int) -> int:
-        """Return the number of rows in a worksheet.
+        """Возвращает количество строк на листе.
 
         Args:
-            worksheet_index: Zero-based index of the worksheet.
+            worksheet_index: Индекс листа (начиная с нуля).
 
         Returns:
-            The worksheet's row count.
+            Количество строк на листе.
         """
         worksheet = self.workbook.sheet_by_index(worksheet_index)
         return worksheet.nrows
 
     def _read_row(self, row_index: int, worksheet_index: int) -> Sequence[Any]:
-        """Read a single row from a worksheet.
+        """Читает одну строку с листа.
 
         Args:
-            row_index: Zero-based index of the row within the sheet.
-            worksheet_index: Zero-based index of the worksheet.
+            row_index: Индекс строки (начиная с нуля) в пределах листа.
+            worksheet_index: Индекс листа (начиная с нуля).
 
         Returns:
-            The decoded cell values of the given row.
+            Декодированные значения ячеек указанной строки.
         """
         worksheet = self.workbook.sheet_by_index(worksheet_index)
         return [self._read_cell_value(cell) for cell in worksheet.row(row_index)]
 
     def _read_cell_value(self, cell: Cell) -> Any:
-        """Decode a cell value into a plain Python value.
+        """Декодирует значение ячейки в обычное значение Python.
 
-        Empty and blank cells become ``None``; date cells become
-        :class:`datetime.datetime` instances; other cells keep their raw
-        value.
+        Пустые и пробельные ячейки становятся ``None``; ячейки с датами
+        становятся экземплярами :class:`datetime.datetime`; остальные ячейки
+        сохраняют своё сырое значение.
 
         Args:
-            cell: The xlrd cell to decode.
+            cell: Ячейка xlrd для декодирования.
 
         Returns:
-            The decoded value of the cell.
+            Декодированное значение ячейки.
         """
         if cell.ctype in (XL_CELL_EMPTY, XL_CELL_BLANK):
             return None
@@ -129,13 +129,13 @@ class XlrdInvoiceReader:
         return cell.value
 
     def _map_row_to_invoice(self, row_values: dict[str, Any]) -> Invoice:
-        """Map a header-keyed row to an invoice.
+        """Преобразует строку с ключами-заголовками в счёт.
 
         Args:
-            row_values: Mapping of column header to cell value for a row.
+            row_values: Отображение заголовка колонки на значение ячейки для строки.
 
         Returns:
-            The invoice built from the row values.
+            Счёт, построенный из значений строки.
         """
         return Invoice(
             client_id=row_values.get('ID клиента'),
@@ -169,13 +169,13 @@ class XlrdInvoiceReader:
 
     @property
     def workbook(self) -> Book:
-        """The currently loaded workbook.
+        """Текущая загруженная книга.
 
         Returns:
-            The loaded xlrd workbook.
+            Загруженная книга xlrd.
 
         Raises:
-            ValueError: If no workbook has been loaded.
+            ValueError: Если книга не была загружена.
         """
         if self._workbook is None:
             raise ValueError('Файл не был загружен')

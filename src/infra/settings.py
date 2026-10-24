@@ -7,21 +7,21 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class InvoiceReportFileSettings(BaseModel):
-    """Settings describing the source invoice report file.
+    """Настройки, описывающие исходный файл отчёта со счетами.
 
-    Attributes:
-        path: Path to the Excel report to process.
+    Атрибуты:
+        path: Путь к обрабатываемому отчёту Excel.
     """
 
     path: Path = Field(default=Path('workdir/DZ_Report.xls'))
 
 
 class InvoiceSelectionSettings(BaseModel):
-    """Settings controlling which invoices are selected for mailing.
+    """Настройки, управляющие отбором счетов для рассылки.
 
-    Attributes:
-        allowed_categories: Invoice categories eligible for mailing.
-        minimum_invoice_age: Minimum age an invoice must have to be selected.
+    Атрибуты:
+        allowed_categories: Категории счетов, подходящие для рассылки.
+        minimum_invoice_age: Минимальный возраст счёта, необходимый для его отбора.
     """
 
     allowed_categories: set[str] = {'Д0', 'Д1', 'Д2', 'Д3', 'Д4', 'Д5', 'Д60'}
@@ -29,11 +29,11 @@ class InvoiceSelectionSettings(BaseModel):
 
 
 class EmailMessageSettings(BaseModel):
-    """Settings for the outgoing mailing email.
+    """Настройки исходящего письма рассылки.
 
-    Attributes:
-        mail_subject: Subject line of the mailing email.
-        mail_tex: Body text of the mailing email.
+    Атрибуты:
+        mail_subject: Тема письма рассылки.
+        mail_tex: Текст тела письма рассылки.
     """
 
     mail_subject: str = 'Неполученные предоплаты до загрузки'
@@ -51,47 +51,47 @@ class EmailMessageSettings(BaseModel):
 
 
 class ExchangeSettings(BaseModel):
-    """Credentials for the Exchange account used to send emails.
+    """Учётные данные для учётной записи Exchange, используемой для отправки писем.
 
-    Attributes:
-        username: Exchange account address.
-        password: Exchange account password.
+    Атрибуты:
+        username: Адрес учётной записи Exchange.
+        password: Пароль учётной записи Exchange.
     """
 
-    username: str = 'a.rusin@highlevel.by'
-    password: SecretStr = SecretStr('n3Q47GEd')
+    username: str = 'some.email@highlevel.by'
+    password: SecretStr = SecretStr('some_password')
 
 
 class AxSettings(BaseModel):
-    """Connection settings for the Microsoft Dynamics AX database.
+    """Настройки подключения к базе данных Microsoft Dynamics AX.
 
-    Attributes:
-        odbc_driver: Name of the ODBC driver to use.
-        server: Database server host.
-        database: Database name.
-        username: Username for authentication.
-        password: Password for authentication.
+    Атрибуты:
+        odbc_driver: Имя используемого ODBC-драйвера.
+        server: Хост сервера базы данных.
+        database: Имя базы данных.
+        username: Имя пользователя для аутентификации.
+        password: Пароль для аутентификации.
     """
 
-    odbc_driver: str = 'ODBC Driver 17 for SQL Server'
-    server: str = 'AXSQL2.sta.local'
-    database: str = 'STA_Prod'
-    username: str = 'qvWriter'
-    password: SecretStr = SecretStr('qv_pa$$woRd')
+    odbc_driver: str = 'DRIVER'
+    server: str = 'SERVER'
+    database: str = 'DB_NAME'
+    username: str = 'USERNAME'
+    password: SecretStr = SecretStr('PASSWORD')
 
 
 class AppSettings(BaseSettings):
-    """Root application settings aggregating all configuration sections.
+    """Корневые настройки приложения, объединяющие все разделы конфигурации.
 
-    Values are loaded from environment variables and an optional
-    ``.env`` file, with nested sections delimited by ``__``.
+    Значения загружаются из переменных окружения и необязательного
+    файла ``.env``, при этом вложенные разделы разделяются с помощью ``__``.
 
-    Attributes:
-        ax: AX database connection settings.
-        invoice_selection: Invoice selection settings.
-        exchange: Exchange account settings.
-        message: Outgoing email settings.
-        invoice_report_file: Source report file settings.
+    Атрибуты:
+        ax: Настройки подключения к базе данных AX.
+        invoice_selection: Настройки отбора счетов.
+        exchange: Настройки учётной записи Exchange.
+        message: Настройки исходящего письма.
+        invoice_report_file: Настройки исходного файла отчёта.
     """
 
     ax: AxSettings = Field(default_factory=AxSettings)
@@ -110,11 +110,11 @@ class AppSettings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> AppSettings:
-    """Return the cached application settings.
+    """Возвращает кэшированные настройки приложения.
 
-    The settings are loaded once and reused on subsequent calls.
+    Настройки загружаются один раз и переиспользуются при последующих вызовах.
 
     Returns:
-        The application settings instance.
+        Экземпляр настроек приложения.
     """
     return AppSettings()
