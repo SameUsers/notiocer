@@ -41,7 +41,22 @@ INVOICE_COLUMNS = (
 
 
 class OpenpyxlInvoiceAttachmentBuilder:
+    """Builds an ``.xlsx`` email attachment from a list of invoices.
+
+    Produces a single-sheet workbook with a styled header row and one
+    data row per invoice, using the column layout defined in
+    :data:`INVOICE_COLUMNS`.
+    """
+
     def _style_headers(self, worksheet: Worksheet) -> None:
+        """Apply header styling to the first row of the worksheet.
+
+        Sets a solid fill, bold white font, centered wrapped alignment,
+        thin borders, fixed column widths, and a taller header row.
+
+        Args:
+            worksheet: Worksheet whose header row should be styled.
+        """
         header_fill = PatternFill(
             fill_type='solid',
             fgColor='1F4E78',
@@ -83,6 +98,17 @@ class OpenpyxlInvoiceAttachmentBuilder:
         worksheet.row_dimensions[1].height = 40
 
     def build_attachment(self, invoices: Sequence[Invoice]) -> EmailAttachment:
+        """Build an ``.xlsx`` attachment containing the given invoices.
+
+        Args:
+            invoices: Invoices to write into the attachment.
+
+        Returns:
+            An email attachment with the generated workbook content.
+
+        Raises:
+            RuntimeError: If the workbook has no active worksheet.
+        """
         workbook = Workbook()
         try:
             worksheet = workbook.active

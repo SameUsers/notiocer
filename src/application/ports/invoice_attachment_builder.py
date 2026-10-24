@@ -6,4 +6,15 @@ from ..dto.email_attachment import EmailAttachment
 
 
 class InvoiceAttachmentBuilder(Protocol):
-    def build_attachment(self, invoices: Sequence[Invoice]) -> EmailAttachment: ...
+    """Протокол для формирования email-вложения из набора счетов."""
+
+    def build_attachment(self, invoices: Sequence[Invoice]) -> EmailAttachment:
+        """Формирует email-вложение, содержащее указанные счета.
+
+        Args:
+            invoices: Счета, которые нужно включить во вложение.
+
+        Returns:
+            Email-вложение, сформированное из переданных счетов.
+        """
+        ...

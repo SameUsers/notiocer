@@ -11,6 +11,13 @@ from ..ports.invoice_excel_reader import InvoiceExcelReader
 
 
 class CreateMailingListFromExcelInteractor:
+    """Сценарий использования, который формирует и отправляет списки рассылки счетов из данных Excel.
+
+    Оркестрирует полный поток: чтение счетов из книги Excel,
+    отбор нужных, группировку по получателям, формирование
+    сообщений для каждого получателя с вложениями и их отправку по email.
+    """
+
     def __init__(
         self,
         attachment_builder: InvoiceAttachmentBuilder,
@@ -20,6 +27,16 @@ class CreateMailingListFromExcelInteractor:
         message_builder: InvoiceMessageBuilder,
         email_sender: EmailSender,
     ) -> None:
+        """Инициализирует интерактор его взаимодействующими сервисами.
+
+        Args:
+            attachment_builder: Формирует email-вложения из счетов.
+            invoice_reader: Загружает и читает счета из книги Excel.
+            invoice_selector: Отбирает счета, которые должны быть разосланы.
+            mailing_list_builder: Группирует счета по получателю.
+            message_builder: Формирует сообщения со счетами для каждого получателя.
+            email_sender: Отправляет подготовленные сообщения по email.
+        """
         self._attachment_builder = attachment_builder
         self._invoice_reader = invoice_reader
         self._invoice_selector = invoice_selector
@@ -28,6 +45,16 @@ class CreateMailingListFromExcelInteractor:
         self._email_sender = email_sender
 
     def execute(self, command: CreateMailingListCommand) -> None:
+        """Выполняет поток создания и отправки списка рассылки.
+
+        Загружает книгу из сырых байтов команды, читает счета
+        с первого листа, отбирает и группирует их по получателю,
+        формирует по одному сообщению на получателя с вложением и отправляет
+        каждое сообщение. Книга всегда выгружается после завершения.
+
+        Args:
+            command: Входные данные, содержащие байты книги Excel.
+        """
         self._invoice_reader.load(excel_bytes=command.excel_bytes)
         try:
             all_invoices = self._invoice_reader.read_invoices(worksheet_index=0)

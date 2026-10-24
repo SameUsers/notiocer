@@ -9,16 +9,22 @@ from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
 from src.domain.services.recipient_mailing_list_builder import (
     RecipientMailingListBuilder,
 )
-from src.infra.ax_adapter.employee_email_lookup import AxEmployeeEmailLookup
+from src.infra.ax_adapters.employee_email_lookup import AxEmployeeEmailLookup
 from src.infra.excel_readers.xlrd_invoice_reader import XlrdInvoiceReader
 from src.infra.excel_writers.openpyxl_invoice_attachment_builder import (
     OpenpyxlInvoiceAttachmentBuilder,
 )
-from src.infra.exchange.exchange_email_sender import ExchangeEmailSender
+from src.infra.exchange_adapters.exchange_email_sender import ExchangeEmailSender
 from src.infra.settings import get_settings
 
 
 def main() -> None:
+    """Compose and run the invoice mailing list application.
+
+    Loads application settings, wires together the infrastructure
+    adapters and domain services, and runs the mailing list flow
+    against the configured Excel report.
+    """
     settings = get_settings()
 
     employee_email_lookup = AxEmployeeEmailLookup(
@@ -62,6 +68,8 @@ def main() -> None:
         use_case=interactor,
     )
     report_controller.run()
+
+    employee_email_lookup.disconnect()
 
 
 if __name__ == '__main__':

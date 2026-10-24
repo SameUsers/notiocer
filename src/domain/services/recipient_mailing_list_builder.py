@@ -1,15 +1,38 @@
 from collections import defaultdict
 from collections.abc import Iterable
+from typing import Any
 
 from ..entity.invoice import Invoice
 
 
 class RecipientMailingListBuilder:
+    """Группирует отобранные счета по адресу электронной почты получателя.
+
+    Маршрутизация получателей зависит от платёжного сервиса и рынка
+    счёта: одни сервисы направляются в фиксированные общие почтовые ящики,
+    а другие — ответственному сотруднику.
+    """
+
     def build(
         self, selected_invoices: Iterable[Invoice]
     ) -> dict[str | None, list[Invoice]]:
+        """Группирует счета по получателю.
+
+        Проходит по переданным счетам и назначает каждый из них
+        получателю на основе его платёжного сервиса и рынка. Сервисы с
+        выделенным общим почтовым ящиком направляются туда; остальные сервисы
+        направляются ответственному сотруднику. Счёт может быть добавлен
+        более чем одному получателю, если он соответствует нескольким правилам.
+
+        Args:
+            selected_invoices: Счета, которые нужно сгруппировать по получателю.
+
+        Returns:
+            Отображение получателя (адрес электронной почты или идентификатор
+            сотрудника) на счета, адресованные ему.
+        """
         cmtd_services = {'Море', 'ЖД', 'Море+ЖД', 'Авто.ДКП', 'Иное.ДКП'}
-        invoices_by_recipient = defaultdict(list)
+        invoices_by_recipient: dict[str, list[Any]] = defaultdict(list)
         for invoice in selected_invoices:
             if invoice.payment_service in cmtd_services:
                 if invoice.market == 'РБ':

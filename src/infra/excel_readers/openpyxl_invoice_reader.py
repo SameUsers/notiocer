@@ -8,15 +8,40 @@ from src.domain.entity.invoice import Invoice
 
 
 class OpenpyxlInvoiceReader:
+    """Reads invoices from an Excel workbook using openpyxl.
+
+    The reader follows a load/read/unload lifecycle: call :meth:`load`
+    with the raw workbook bytes, read invoices with
+    :meth:`read_invoices`, and release the workbook with :meth:`unload`.
+    """
+
     def __init__(self) -> None:
+        """Initialize the reader with no workbook loaded."""
         self._workbook: Workbook | None = None
 
     def load(self, excel_bytes: bytes) -> None:
+        """Load a workbook from raw Excel bytes into memory.
+
+        Args:
+            excel_bytes: Raw content of the ``.xlsx`` file to parse.
+
+        Raises:
+            RuntimeError: If a workbook is already loaded. Call
+                :meth:`unload` first.
+        """
         if self._workbook is not None:
             raise RuntimeError('Файл уже был загружен. Сначала вызовите unload()')
         self._workbook = load_workbook(filename=BytesIO(excel_bytes), data_only=True)
 
     def _map_row_to_invoice(self, row_values: dict[str, Any]) -> Invoice:
+        """Map a header-keyed row to an invoice.
+
+        Args:
+            row_values: Mapping of column header to cell value for a row.
+
+        Returns:
+            The invoice built from the row values.
+        """
         return Invoice(
             client_id=row_values.get('ID клиента'),
             legal_entity=row_values.get('Юр лицо'),
@@ -48,17 +73,53 @@ class OpenpyxlInvoiceReader:
         )
 
     def _read_headers(self, worksheet_index: int) -> Sequence[Any]:
+        """Read the header row of a worksheet.
+
+        Args:
+            worksheet_index: Zero-based index of the worksheet.
+
+        Returns:
+            The cell values of the header row.
+        """
         return self._read_row(row_index=0, worksheet_index=worksheet_index)
 
     def _read_row(self, row_index: int, worksheet_index: int) -> Sequence[Any]:
+        """Read a single row from a worksheet.
+
+        Args:
+            row_index: Zero-based index of the row within the data range.
+            worksheet_index: Zero-based index of the worksheet.
+
+        Returns:
+            The cell values of the given row.
+        """
         worksheet = self.workbook.worksheets[worksheet_index]
         return [cell.value for cell in worksheet[row_index + 1]]
 
     def _get_row_count(self, worksheet_index: int) -> int:
+        """Return the number of rows in a worksheet.
+
+        Args:
+            worksheet_index: Zero-based index of the worksheet.
+
+        Returns:
+            The worksheet's maximum row count.
+        """
         worksheet = self.workbook.worksheets[worksheet_index]
         return worksheet.max_row
 
     def read_invoices(self, worksheet_index: int) -> list[Invoice]:
+        """Read all invoices from a worksheet.
+
+        Skips the header row and maps every subsequent row to an
+        invoice.
+
+        Args:
+            worksheet_index: Zero-based index of the worksheet to read.
+
+        Returns:
+            A list of invoices parsed from the worksheet.
+        """
         row_count = self._get_row_count(worksheet_index=worksheet_index)
         headers = self._read_headers(worksheet_index=worksheet_index)
         invoice_rows = [
@@ -75,12 +136,21 @@ class OpenpyxlInvoiceReader:
         return [self._map_row_to_invoice(row_values) for row_values in invoice_rows]
 
     def unload(self) -> None:
+        """Close the loaded workbook and reset the reader state."""
         if self._workbook is not None:
             self._workbook.close()
             self._workbook = None
 
     @property
     def workbook(self) -> Workbook:
+        """The currently loaded workbook.
+
+        Returns:
+            The loaded openpyxl workbook.
+
+        Raises:
+            ValueError: If no workbook has been loaded.
+        """
         if self._workbook is None:
             raise ValueError('Файл не был загружен')
         return self._workbook

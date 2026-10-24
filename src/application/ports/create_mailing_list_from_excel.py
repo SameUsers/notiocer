@@ -4,4 +4,12 @@ from src.application.commands.create_mailing_list import CreateMailingListComman
 
 
 class CreateMailingListFromExcelUseCase(Protocol):
-    def execute(self, command: CreateMailingListCommand) -> None: ...
+    """Протокол для создания списка рассылки из источника Excel."""
+
+    def execute(self, command: CreateMailingListCommand) -> None:
+        """Выполняет поток создания списка рассылки.
+
+        Args:
+            command: Входные данные, описывающие создаваемый список рассылки.
+        """
+        ...
