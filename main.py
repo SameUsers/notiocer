@@ -2,7 +2,7 @@ from pathlib import Path
 
 from src.infra.excel_readers.xlrd_invoice_reader import XlrdInvoiceReader
 from src.application.commands.create_mailing_list import CreateMailingListCommand
-from src.application.interactors.create_mailing_list import CreateMailingListInteractor
+from src.application.interactors.create_mailing_list_from_excel import CreateMailingListInteractor
 from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
 from src.domain.services.recipient_mailing_list_builder import RecipientMailingListBuilder
 from src.domain.services.invoice_message_builder import InvoiceMessageBuilder

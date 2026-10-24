@@ -1,13 +1,13 @@
 from ..entity.invoice import Invoice
 from ..entity.invoice_message import InvoiceMessage
-from ..ports.employee_email_lookup import EmployeeEmailLookup
+from ...application.ports.employee_email_lookup import EmployeeEmailLookup
 
 class InvoiceMessageBuilder:
     def __init__(self, employee_email_lookup: EmployeeEmailLookup) -> None:
         self._employee_email_lookup = employee_email_lookup
 
     def build_messages(self, invoices_by_recipient: dict[str | None, list[Invoice]]) -> list[InvoiceMessage]:
-        messages = []
+        messages: list[InvoiceMessage] = list()
         for recipient, invoices in invoices_by_recipient.items():
             if not recipient:
                 continue

@@ -4,7 +4,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from src.application.commands.create_mailing_list import CreateMailingListCommand
-from src.application.interactors.create_mailing_list import CreateMailingListInteractor
+from src.application.interactors.create_mailing_list_from_excel import CreateMailingListInteractor
 from src.application.ports.invoice_excel_reader import InvoiceExcelReader
 from src.application.ports.email_sender import EmailSender
 from src.application.ports.invoice_attachment_builder import InvoiceAttachmentBuilder

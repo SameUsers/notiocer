@@ -1,7 +1,7 @@
 import pytest
 
 from src.domain.entity.invoice_message import InvoiceMessage
-from src.domain.ports.employee_email_lookup import EmployeeEmailLookup
+from src.application.ports.employee_email_lookup import EmployeeEmailLookup
 from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
 
 
