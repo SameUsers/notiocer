@@ -1,11 +1,9 @@
-from collections.abc import Callable
 from datetime import timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import (
-    AliasChoices,
     BaseModel,
     Field,
     SecretStr,
@@ -14,7 +12,6 @@ from pydantic import (
 )
 from pydantic_settings import (
     BaseSettings,
-    PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
 
@@ -52,12 +49,9 @@ class InvoiceSelectionSettings(BaseModel):
 
 
 class EmailMessageSettings(BaseModel):
-    """Тема и текст письма; прежние mail_subject и mail_tex поддерживаются как имена настроек."""
+    """Тема и текст письма."""
 
-    subject: NonEmptyString = Field(
-        default='Неполученные предоплаты до загрузки',
-        validation_alias=AliasChoices('subject', 'mail_subject'),
-    )
+    subject: NonEmptyString = 'Неполученные предоплаты до загрузки'
     body: NonEmptyString = Field(
         default="""Добрый день.
 Направляем список счетов с неполученной предоплатой до загрузки.
@@ -70,7 +64,6 @@ class EmailMessageSettings(BaseModel):
 
 При некорректных данных или невозможности получения оплаты просим сообщить
 об этом на почтовую группу СФБ.""",
-        validation_alias=AliasChoices('body', 'mail_tex'),
     )
 
 
@@ -119,53 +112,6 @@ class AppSettings(BaseSettings):
         default_factory=InvoiceReportFileSettings
     )
     mailing_rules_file: Path = PROJECT_ROOT / 'config/invoice_routing_rules.yml'
-
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
-    ) -> tuple[Callable[[], dict[str, Any]], ...]:
-        """Приводит старые имена message к новым до объединения источников."""
-
-        def normalize_message_aliases(
-            source: PydanticBaseSettingsSource,
-        ) -> Callable[[], dict[str, Any]]:
-            def read_source() -> dict[str, Any]:
-                source_values = source()
-                message_values = source_values.get('message')
-                if isinstance(message_values, dict):
-                    message_values = message_values.copy()
-                    for legacy_name, canonical_name in [
-                        ('mail_subject', 'subject'),
-                        ('mail_tex', 'body'),
-                    ]:
-                        if legacy_name in message_values:
-                            value = message_values.pop(legacy_name)
-                            message_values.setdefault(canonical_name, value)
-                    source_values = {**source_values, 'message': message_values}
-                return source_values
-
-            return read_source
-
-        return tuple(
-            normalize_message_aliases(source)
-            for source in (
-                init_settings,
-                env_settings,
-                dotenv_settings,
-                file_secret_settings,
-            )
-        )
-
-    @field_validator('mailing_rules_file')
-    @classmethod
-    def validate_rules_path(cls, value: Path) -> Path:
-        """Разрешает путь к YAML от корня проекта."""
-        return resolve_project_path(value)
 
 
 @lru_cache(maxsize=1)

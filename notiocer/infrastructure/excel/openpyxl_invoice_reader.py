@@ -5,6 +5,8 @@ from typing import Any
 from openpyxl import Workbook, load_workbook
 
 from notiocer.domain.models.invoice import Invoice
+from dataclasses import fields
+from typing import Any, get_args, get_type_hints
 
 
 class OpenpyxlInvoiceReader:
@@ -24,38 +26,19 @@ class OpenpyxlInvoiceReader:
             raise RuntimeError('Файл уже был загружен. Сначала вызовите unload()')
         self._workbook = load_workbook(filename=BytesIO(report_content), data_only=True)
 
-    def _map_row_to_invoice(self, values_by_header: dict[str, Any]) -> Invoice:
-        """Сопоставляет значения строки с полями счёта по заголовкам."""
+    def _map_row_to_invoice(
+        self,
+        values_by_header: dict[str, Any],
+    ) -> Invoice:
+        """Создаёт Invoice, используя метаданные Annotated."""
+
+        hints = get_type_hints(Invoice, include_extras=True)
+
         return Invoice(
-            client_id=values_by_header.get('ID клиента'),
-            legal_entity=values_by_header.get('Юр лицо'),
-            billing_subject=values_by_header.get('Счет на'),
-            invoice_number=values_by_header.get('Полный номер счета'),
-            invoice_date=values_by_header.get('Дата счета'),
-            invoice_amount=values_by_header.get('Сумма счета'),
-            balance=values_by_header.get('Сальдо'),
-            currency=values_by_header.get('Валюта'),
-            category=values_by_header.get('Категория'),
-            payment_due_date=values_by_header.get('Срок оплаты'),
-            prepayment_before_loading=values_by_header.get('Предоплата до загрузки'),
-            employee_id=values_by_header.get('Сотрудник'),
-            equipment_service=values_by_header.get('Услуга отдела оборудования'),
-            transport_reference=values_by_header.get('Номер контейнера / AWB /авто'),
-            unloading_date=values_by_header.get('Дата выгрузки'),
-            sfb_curator=values_by_header.get('Куратор СФБ'),
-            shipping_date=values_by_header.get('Дата отгрузки'),
-            estimated_arrival_date=values_by_header.get('Прогнозная ETA'),
-            market=values_by_header.get('Рынок'),
-            payment_service=values_by_header.get('Сервис для срока оплаты'),
-            payment_terms_type=values_by_header.get('Тип платежных условий'),
-            contract_details=values_by_header.get('№ и дата договора'),
-            service_type=values_by_header.get('Тип сервиса'),
-            partial_prepayment=values_by_header.get('Частичная предоплата'),
-            partial_prepayment_terms=values_by_header.get(
-                'Условия частичной предоплаты'
-            ),
-            payment_milestone=values_by_header.get('Крайний момент оплаты'),
-            calculated_payment_term=values_by_header.get('Расчетный с/о'),
+            **{
+                field.name: values_by_header.get(get_args(hints[field.name])[1])
+                for field in fields(Invoice)
+            }
         )
 
     def _read_headers(self, worksheet_index: int) -> Sequence[Any]:

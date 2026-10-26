@@ -51,6 +51,6 @@ class ExchangeEmailSender:
         exchange_message.refresh()
         content = exchange_message.mime_content
         if content:
-            with open(f"results/{email.recipient_email}.eml" , mode="wb") as file:
-                file.write(content) # type: ignore
-        #exchange_message.send_and_save()
+            with open(f'results/{email.recipient_email}.eml', mode='wb') as file:
+                file.write(content)  # type: ignore
+        # exchange_message.send_and_save()
