@@ -19,6 +19,7 @@ from notiocer.infrastructure.excel.openpyxl_invoice_attachment_builder import (
 from notiocer.infrastructure.excel.openpyxl_invoice_reader import OpenpyxlInvoiceReader
 from notiocer.infrastructure.excel.xlrd_invoice_reader import XlrdInvoiceReader
 from notiocer.infrastructure.exchange.exchange_email_sender import ExchangeEmailSender
+from notiocer.infrastructure.qlikview.report_generator import QlikViewReportGenerator
 from notiocer.presentation.cli.invoice_report_controller import (
     InvoiceReportController,
 )
@@ -36,6 +37,11 @@ def main() -> None:
     report_path = settings.invoice_report_file.path
     if not report_path.is_file():
         raise FileNotFoundError(f'Не найден Excel-отчёт: {report_path}')
+
+    report_generator = QlikViewReportGenerator(
+        command=[str(settings.qlikview.executable_path), *settings.qlikview.arguments],
+        timeout_seconds=settings.qlikview.timeout_seconds,
+    )
 
     employee_email_lookup = AxEmployeeEmailLookup(
         odbc_driver=settings.ax.odbc_driver,
@@ -71,6 +77,7 @@ def main() -> None:
 
     attachment_builder = OpenpyxlInvoiceAttachmentBuilder()
     send_notifications = SendInvoiceNotifications(
+        report_generator=report_generator,
         invoice_reader=invoice_reader,
         invoice_selector=invoice_selector,
         recipient_router=recipient_router,

@@ -34,6 +34,9 @@ python main.py
 | `ax__odbc_driver` | По умолчанию `ODBC Driver 17 for SQL Server` |
 | `ax__cache_path` | По умолчанию `data/user_cache.json` |
 | `exchange__username`, `exchange__password` | Обязательные доступы Exchange; включён autodiscover |
+| `qlikview__executable_path` | Обязательный абсолютный путь к `Qv.exe` |
+| `qlikview__arguments` | JSON-список аргументов запуска, по умолчанию `[]` |
+| `qlikview__timeout_seconds` | Время ожидания генерации в секундах, по умолчанию `300` |
 | `invoice_report_file__path` | `workdir/DZ_Report.xls`; `.xls` читает xlrd, `.xlsx` — openpyxl |
 | `mailing_rules_file` | `config/invoice_routing_rules.yml` |
 | `invoice_selection__allowed_categories` | JSON-список; по умолчанию `Д0`–`Д5`, `Д60` |
@@ -96,7 +99,7 @@ notiocer/
 │   ├── use_cases/              SendInvoiceNotifications
 │   ├── commands/               Входные данные сценария
 │   ├── dto/                    EmailAttachment и InvoiceEmail
-│   └── ports/                  Контракты сценария, чтения, вложений и отправки
+│   └── ports/                  Контракты сценария, генерации, чтения и рассылки
 ├── infrastructure/
 │   ├── ax/                     Поиск email, кэш и queries/employee_email.sql
 │   ├── excel/                  Адаптеры xlrd и openpyxl
@@ -128,8 +131,10 @@ flowchart LR
 связывает только `main.py`. Эти границы проверяются архитектурными тестами.
 
 Модули используют прямые абсолютные импорты `notiocer.…`; `__init__.py`
-описывают пакеты без массовых переэкспортов. `QlikViewProcessRunner` — отдельный
-адаптер, в текущий запуск не включён.
+описывают пакеты без массовых переэкспортов. Генерация отчёта вызывается через
+порт `ReportGenerator`; адаптер `QlikViewReportGenerator` запускает QlikView.
+Путь к EXE и аргументы передаются отдельными элементами команды: пути с пробелами
+не нужно дополнительно заключать в кавычки внутри значения.
 
 ## Ограничения 1.0
 

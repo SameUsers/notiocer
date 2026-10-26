@@ -9,6 +9,7 @@ from notiocer.application.ports.invoice_attachment_builder import (
     InvoiceAttachmentBuilder,
 )
 from notiocer.application.ports.invoice_reader import InvoiceReader
+from notiocer.application.ports.report_generator import ReportGenerator
 from notiocer.domain.services.invoice_notification_builder import (
     InvoiceNotificationBuilder,
 )
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class SendInvoiceNotifications:
-    """Читает Excel-отчёт, отбирает счета и отправляет их получателям."""
+    """Запускает генерацию отчёта, отбор счетов и рассылку уведомлений."""
 
     def __init__(
         self,
@@ -29,17 +30,20 @@ class SendInvoiceNotifications:
         recipient_router: InvoiceRecipientRouter,
         notification_builder: InvoiceNotificationBuilder,
         email_sender: EmailSender,
+        report_generator: ReportGenerator,
     ) -> None:
-        """Принимает зависимости чтения, обработки и отправки счетов."""
+        """Принимает зависимости генерации отчёта, чтения и рассылки счетов."""
         self._attachment_builder = attachment_builder
         self._invoice_reader = invoice_reader
         self._invoice_selector = invoice_selector
         self._recipient_router = recipient_router
         self._notification_builder = notification_builder
         self._email_sender = email_sender
+        self._report_generator = report_generator
 
     def execute(self, command: SendInvoiceNotificationsCommand) -> None:
-        """Готовит все вложения, отправляет письма и освобождает загруженную книгу."""
+        """Генерирует отчёт, готовит вложения, отправляет письма и освобождает книгу."""
+        self._report_generator.generate()
         self._invoice_reader.load(report_content=command.report_content)
         try:
             invoices = self._invoice_reader.read_invoices(worksheet_index=0)

@@ -74,6 +74,14 @@ class ExchangeSettings(BaseModel):
     password: SecretStr = Field(min_length=1)
 
 
+class QlikViewSettings(BaseModel):
+    """Путь к QlikView, аргументы запуска и время ожидания отчёта."""
+
+    executable_path: Path
+    arguments: list[str] = Field(default_factory=list)
+    timeout_seconds: float = Field(default=300, gt=0)
+
+
 class AxSettings(BaseModel):
     """Обязательные параметры AX и путь к локальному кэшу адресов."""
 
@@ -104,6 +112,7 @@ class AppSettings(BaseSettings):
 
     ax: AxSettings
     exchange: ExchangeSettings
+    qlikview: QlikViewSettings
     invoice_selection: InvoiceSelectionSettings = Field(
         default_factory=InvoiceSelectionSettings
     )

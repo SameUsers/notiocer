@@ -3,8 +3,8 @@ import subprocess
 from collections.abc import Sequence
 
 
-class QlikViewProcessRunner:
-    """Запускает QlikView с переданными аргументами и ограничением времени."""
+class QlikViewReportGenerator:
+    """Генерирует отчёт запуском QlikView с ограничением времени."""
 
     def __init__(
         self,
@@ -15,8 +15,8 @@ class QlikViewProcessRunner:
         self._command = list(command)
         self._timeout_seconds = timeout_seconds
 
-    def run(self) -> None:
-        """Запускает команду и ждёт завершения.
+    def generate(self) -> None:
+        """Запускает QlikView для генерации отчёта и ждёт завершения.
 
         Raises:
             RuntimeError: Процесс завершился с ненулевым кодом.
