@@ -1,31 +1,41 @@
-from src.application.interactors.create_mailing_list_from_excel import (
-    CreateMailingListFromExcelInteractor,
+import logging
+
+from notiocer.application.use_cases.send_invoice_notifications import (
+    SendInvoiceNotifications,
 )
-from src.controllers.local_excel_report_controller import (
-    LocalExcelReportController,
+from notiocer.domain.services.invoice_notification_builder import (
+    InvoiceNotificationBuilder,
 )
-from src.domain.services.invoice_message_builder import InvoiceMessageBuilder
-from src.domain.services.mailing_invoice_selector import MailingInvoiceSelector
-from src.domain.services.recipient_mailing_list_builder import (
-    RecipientMailingListBuilder,
+from notiocer.domain.services.invoice_recipient_router import (
+    InvoiceRecipientRouter,
 )
-from src.infra.ax_adapters.employee_email_lookup import AxEmployeeEmailLookup
-from src.infra.excel_readers.xlrd_invoice_reader import XlrdInvoiceReader
-from src.infra.excel_writers.openpyxl_invoice_attachment_builder import (
+from notiocer.domain.services.mailing_invoice_selector import MailingInvoiceSelector
+from notiocer.infrastructure.ax.employee_email_lookup import AxEmployeeEmailLookup
+from notiocer.infrastructure.config.routing_rules import load_routing_rules
+from notiocer.infrastructure.config.settings import get_settings
+from notiocer.infrastructure.excel.openpyxl_invoice_attachment_builder import (
     OpenpyxlInvoiceAttachmentBuilder,
 )
-from src.infra.exchange_adapters.exchange_email_sender import ExchangeEmailSender
-from src.infra.settings import get_settings
+from notiocer.infrastructure.excel.openpyxl_invoice_reader import OpenpyxlInvoiceReader
+from notiocer.infrastructure.excel.xlrd_invoice_reader import XlrdInvoiceReader
+from notiocer.infrastructure.exchange.exchange_email_sender import ExchangeEmailSender
+from notiocer.presentation.cli.invoice_report_controller import (
+    InvoiceReportController,
+)
 
 
 def main() -> None:
-    """Compose and run the invoice mailing list application.
+    """Собирает зависимости и запускает рассылку по Excel-отчёту.
 
-    Loads application settings, wires together the infrastructure
-    adapters and domain services, and runs the mailing list flow
-    against the configured Excel report.
+    Проверяет YAML-правила до подключения к внешним системам.
+    Передаёт правила доменному сервису и закрывает соединение с AX
+    после выполнения сценария, в том числе при ошибке.
     """
     settings = get_settings()
+    routing_rules = load_routing_rules(settings.mailing_rules_file)
+    report_path = settings.invoice_report_file.path
+    if not report_path.is_file():
+        raise FileNotFoundError(f'Не найден Excel-отчёт: {report_path}')
 
     employee_email_lookup = AxEmployeeEmailLookup(
         odbc_driver=settings.ax.odbc_driver,
@@ -33,44 +43,55 @@ def main() -> None:
         database=settings.ax.database,
         username=settings.ax.username,
         password=settings.ax.password.get_secret_value(),
+        cache_path=settings.ax.cache_path,
     )
-    employee_email_lookup.connect()
 
     email_sender = ExchangeEmailSender(
         username=settings.exchange.username,
         password=settings.exchange.password.get_secret_value(),
-        defult_text=settings.message.mail_tex,
-        default_subject=settings.message.mail_subject,
+        default_body=settings.message.body,
+        default_subject=settings.message.subject,
     )
-    invoice_reader = XlrdInvoiceReader()
+    invoice_reader = (
+        XlrdInvoiceReader()
+        if report_path.suffix.lower() == '.xls'
+        else OpenpyxlInvoiceReader()
+    )
 
     invoice_selector = MailingInvoiceSelector(
         allowed_categories=settings.invoice_selection.allowed_categories,
         minimum_invoice_age=settings.invoice_selection.minimum_invoice_age,
     )
 
-    mailing_list_builder = RecipientMailingListBuilder()
+    recipient_router = InvoiceRecipientRouter(routing_rules=routing_rules)
 
-    message_builder = InvoiceMessageBuilder(employee_email_lookup=employee_email_lookup)
+    notification_builder = InvoiceNotificationBuilder(
+        employee_email_lookup=employee_email_lookup
+    )
 
     attachment_builder = OpenpyxlInvoiceAttachmentBuilder()
-    interactor = CreateMailingListFromExcelInteractor(
+    send_notifications = SendInvoiceNotifications(
         invoice_reader=invoice_reader,
         invoice_selector=invoice_selector,
-        mailing_list_builder=mailing_list_builder,
-        message_builder=message_builder,
+        recipient_router=recipient_router,
+        notification_builder=notification_builder,
         attachment_builder=attachment_builder,
         email_sender=email_sender,
     )
 
-    report_controller = LocalExcelReportController(
-        report_path=settings.invoice_report_file.path,
-        use_case=interactor,
+    report_controller = InvoiceReportController(
+        report_path=report_path,
+        use_case=send_notifications,
     )
-    report_controller.run()
-
-    employee_email_lookup.disconnect()
+    employee_email_lookup.connect()
+    try:
+        report_controller.run()
+    finally:
+        employee_email_lookup.disconnect()
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s'
+    )
     main()

@@ -2,6 +2,11 @@
 *__pycache__
 *cache
 test.json
-tests
+tests/test_files/
 .env
 workdir
+results/
+data/
+docs/
+.ruff_cache/
+tests

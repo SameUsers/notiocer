@@ -1,0 +1,59 @@
+rules:
+  - services:
+      - "Море"
+      - "ЖД"
+      - "Море+ЖД"
+      - "Авто.ДКП"
+      - "Иное.ДКП"
+    recipients:
+      РБ: "CMTD_BY_CM@stalogistic.com"
+      РФ: "CMTD_RU_CM@stalogistic.com"
+      default: "ctd_cm@stalogistic.com"
+
+  - services:
+      - "Авиа"
+    recipients:
+      РБ: "CM_Air_BY@stalogistic.com"
+      РФ: "cm-air-ru@stalogistic.com"
+      default: "air@stalogistic.com"
+
+  - services:
+      - "ОКГ"
+    recipients:
+      РБ: "ftl_cm_by@stalogistic.com"
+      РФ: "FTL_CM_RU@stalogistic.com"
+      Узбекистан: "FTL_CM_UZ@stalogistic.com"
+      Казахстан: "FTL_CM_KZ@stalogistic.com"
+      default: employee
+
+  - services:
+      - "ОВС"
+    recipients:
+      default: "ovs@stalogistic.com"
+
+  - services:
+      - "ОСГ"
+    recipients:
+      РБ: "KM_SG_RB@stalogistic.com"
+      РФ: "KM_SG_RF@stalogistic.com"
+      default: "km_sg@stalogistic.com"
+
+  - services:
+      - "Проекты"
+    recipients:
+      default: "oog@stalogistic.com"
+
+  - services:
+      - "ТО"
+      - "TC"
+      - "ТО и ТС"
+    recipients:
+      default: "csd2@stalogistic.com"
+
+  - services:
+      - "Тшк"
+      - "Алм"
+      - "ЛГВ"
+      - "Склад"
+    recipients:
+      default: employee
