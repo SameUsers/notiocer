@@ -2,7 +2,10 @@
 
 Рассылка счетов из Excel: отбор, маршрутизация по отделам и сотрудникам,
 XLSX-вложение для каждого получателя и отправка через Microsoft Exchange.
-Адреса сотрудников ищутся по `EMPLID` в Dynamics AX и сохраняются в JSON-кэше.
+Адреса сотрудников ищутся по `EMPLID` в Dynamics AX.
+
+> **Кэш AX отключён:** каждый поиск email обращается к базе.
+> JSON-кэш не читается и не обновляется; для поиска требуется открытое соединение с AX.
 
 ## Запуск
 
@@ -32,7 +35,7 @@ python main.py
 |---|---|
 | `ax__server`, `ax__database`, `ax__username`, `ax__password` | Обязательные параметры AX |
 | `ax__odbc_driver` | По умолчанию `ODBC Driver 17 for SQL Server` |
-| `ax__cache_path` | По умолчанию `data/user_cache.json` |
+| `ax__cache_path` | `data/user_cache.json`; сейчас не используется, кэш отключён |
 | `exchange__username`, `exchange__password` | Обязательные доступы Exchange; включён autodiscover |
 | `qlikview__executable_path` | Обязательный абсолютный путь к `Qv.exe` |
 | `qlikview__arguments` | JSON-список аргументов запуска, по умолчанию `[]` |
@@ -101,7 +104,7 @@ notiocer/
 │   ├── dto/                    EmailAttachment и InvoiceEmail
 │   └── ports/                  Контракты сценария, генерации, чтения и рассылки
 ├── infrastructure/
-│   ├── ax/                     Поиск email, кэш и queries/employee_email.sql
+│   ├── ax/                     Поиск email и queries/employee_email.sql
 │   ├── excel/                  Адаптеры xlrd и openpyxl
 │   ├── exchange/               Отправка писем
 │   ├── qlikview/               Запуск процесса QlikView
@@ -120,7 +123,7 @@ flowchart LR
     Flow --> Select[Отбор счетов]
     Select --> Routes[Маршрутизация]
     Routes --> Messages[Сообщения по email]
-    AX[AX и кэш] --> Messages
+    AX[Dynamics AX] --> Messages
     Messages --> XLSX[XLSX-вложения]
     XLSX --> Send[Exchange]
 ```
@@ -140,8 +143,7 @@ flowchart LR
 
 - Журнал доставок не хранится. Повторный запуск после частичной отправки
   может повторить уже отправленные письма; автоматического повтора нет.
-- У JSON-кэша нет срока действия и блокировки параллельных запусков.
-  Запускайте один экземпляр приложения.
+- Кэш email отключён: повторные поиски адреса выполняют повторные запросы к AX.
 - Отсутствующие колонки и значения читаются как `None`. Отдельного отчёта
   о пропущенных счетах пока нет.
 - Даты сравниваются в локальном времени без часового пояса.

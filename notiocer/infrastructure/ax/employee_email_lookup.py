@@ -9,7 +9,7 @@ from notiocer.infrastructure.retry import retry
 
 
 class AxEmployeeEmailLookup:
-    """Ищет email сотрудников в AX через ODBC и сохраняет найденные адреса в JSON-кэше."""
+    """Ищет email сотрудников в AX через ODBC; JSON-кэш сейчас отключён."""
 
     def __init__(
         self,
@@ -103,14 +103,14 @@ class AxEmployeeEmailLookup:
 
     @retry(attempts=3, delay_seconds=2)
     def get_email(self, employee_id: str) -> str | None:
-        """Ищет email в кэше и AX, возвращая None при отсутствии адреса.
+        """Ищет email напрямую в AX, возвращая None при отсутствии адреса.
 
         Raises:
-            RuntimeError: Адрес не закэширован и соединение с AX не открыто.
+            RuntimeError: Соединение с AX не открыто.
         """
-        cached_emails = self._load_cache()
-        if employee_id in cached_emails:
-            return cached_emails[employee_id]
+        # cached_emails = self._load_cache()
+        # if employee_id in cached_emails:
+        #     return cached_emails[employee_id]
         if self._connection is None:
             raise RuntimeError('Соединение с AX не установлено')
         query_path = Path(__file__).with_name('queries') / 'employee_email.sql'
@@ -124,6 +124,6 @@ class AxEmployeeEmailLookup:
             email_address = str(employee_record[3])
         finally:
             cursor.close()
-        cached_emails[employee_id] = email_address
-        self._save_cache(cached_emails)
+        # cached_emails[employee_id] = email_address
+        # self._save_cache(cached_emails)
         return email_address
